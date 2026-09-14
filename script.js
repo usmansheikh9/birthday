@@ -8,6 +8,7 @@
      3. Confetti engine   — fireConfetti()
      4. Flame helpers     — extinguishFlame() / relightFlames()
      4b. Blow-out         — mic detection + tap fallback
+     4c. Collage          — vintage polaroid slideshow
      5. Countdown         — fixed Karachi (+05:00) target instant
      6. Boot              — URL params (?skip, ?screen=)
    ============================================================ */
@@ -27,6 +28,26 @@
   // absolute moment no matter what timezone the phone is set to.
   var TARGET_ISO = "2026-09-16T00:00:00+05:00";
   var TARGET_MS  = new Date(TARGET_ISO).getTime();
+
+  /* The collage slideshow, in story order. Add or reorder freely — the
+     screen builds itself from this list, so dropping in "10.jpg" means
+     adding one line here and nothing else. */
+  var PHOTOS = [
+    "assets/photos/01.jpg",
+    "assets/photos/02.jpg",
+    "assets/photos/03.jpg",
+    "assets/photos/04.jpg",
+    "assets/photos/05.jpg",
+    "assets/photos/06.jpg",
+    "assets/photos/07.jpg",
+    "assets/photos/08.jpg",
+    "assets/photos/09.jpg"
+  ];
+
+  // How long each photo holds, in ms. The Ken Burns and dot-fill timings
+  // in style.css are tuned against this.
+  var PHOTO_HOLD_MS = 3500;
+  var PHOTO_FADE_MS = 900;
 
   /* ============================================================
      1b. ON-SCREEN DEBUG READOUT
@@ -752,12 +773,209 @@
   })();
 
   /* ============================================================
-     PLACEHOLDER — the next screen.
-     Called once both candles are out and the smoke has cleared.
+     4c. COLLAGE — vintage polaroid slideshow
+     Auto-advances through PHOTOS, then hands off to goToLetter().
+     Tap right to advance, tap the left third or swipe right to go back,
+     and there is always a visible skip. She is never stuck.
      ============================================================ */
+
+  var collage = (function () {
+    var slidesEl = document.getElementById("pola-slides");
+    var dotsEl   = document.getElementById("collage-dots");
+    var countEl  = document.getElementById("pola-count");
+    var polaEl   = document.getElementById("pola");
+    var skipBtn  = document.getElementById("collage-skip");
+    var rootEl   = document.getElementById("collage");
+
+    var slides = [];   // { figure, img, loaded }
+    var dots = [];
+    var index = 0;
+    var timer = null;
+    var running = false;
+    var built = false;
+
+    /* Slides are built once, on first entry, so the images are not
+       requested at all unless the collage is actually reached. */
+    function build() {
+      if (built || !slidesEl) return;
+      built = true;
+
+      PHOTOS.forEach(function (src, i) {
+        var fig = document.createElement("figure");
+        fig.className = "slide";
+
+        var img = document.createElement("img");
+        img.alt = "";                    // decorative; the photos are the content
+        img.decoding = "async";
+        img.dataset.src = src;
+        // A missing file must not stall the show.
+        img.addEventListener("error", function () {
+          console.warn("[collage] could not load " + src);
+          if (running && i === index) next();
+        });
+
+        fig.appendChild(img);
+        slidesEl.appendChild(fig);
+        slides.push({ fig: fig, img: img, loaded: false });
+
+        var d = document.createElement("span");
+        d.className = "dot-item";
+        dotsEl.appendChild(d);
+        dots.push(d);
+      });
+
+      bindGestures();
+      if (skipBtn) skipBtn.addEventListener("click", finish);
+    }
+
+    /** Set src only when a photo is about to be needed. */
+    function load(i) {
+      var s = slides[i];
+      if (!s || s.loaded) return;
+      s.loaded = true;
+      s.img.src = s.img.dataset.src;
+    }
+
+    function show(i, immediate) {
+      if (!slides.length) return;
+      index = (i + slides.length) % slides.length;
+
+      load(index);
+      load(index + 1 < slides.length ? index + 1 : 0); // warm the next one
+
+      slides.forEach(function (s, n) {
+        if (n === index) {
+          s.fig.classList.remove("is-leaving");
+          s.fig.classList.add("is-current");
+        } else if (s.fig.classList.contains("is-current")) {
+          s.fig.classList.remove("is-current");
+          s.fig.classList.add("is-leaving");
+          // drop the leaving class once the crossfade is over, so the
+          // Ken Burns animation can restart cleanly next time round
+          (function (fig) {
+            setTimeout(function () { fig.classList.remove("is-leaving"); },
+                       immediate ? 0 : PHOTO_FADE_MS);
+          })(s.fig);
+        }
+      });
+
+      dots.forEach(function (d, n) {
+        d.classList.toggle("is-active", n === index);
+        d.classList.toggle("is-done", n < index);
+      });
+      // restart the dot fill animation
+      var active = dots[index];
+      if (active) {
+        active.style.animation = "none";
+        void active.offsetWidth;
+        active.style.animation = "";
+      }
+
+      if (countEl) countEl.textContent = (index + 1) + " / " + slides.length;
+      // gentle rock between shots
+      if (polaEl) polaEl.style.setProperty("--tilt", (index % 2 ? 1.3 : -1.4) + "deg");
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      if (!running) return;
+      timer = setTimeout(function () {
+        if (index >= slides.length - 1) finish();
+        else next();
+      }, PHOTO_HOLD_MS);
+    }
+
+    function next() { if (running) { show(index + 1); schedule(); } }
+    function prev() { if (running) { show(index - 1); schedule(); } }
+
+    /* Tap the left third to go back, anywhere else to advance; swipe works
+       in both directions. Vertical drags are ignored so scrolling still
+       behaves normally. */
+    function bindGestures() {
+      var x0 = 0, y0 = 0, t0 = 0, moved = false;
+
+      rootEl.addEventListener("touchstart", function (e) {
+        var t = e.changedTouches[0];
+        x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); moved = false;
+      }, { passive: true });
+
+      rootEl.addEventListener("touchend", function (e) {
+        if (skipBtn && skipBtn.contains(e.target)) return;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - x0, dy = t.clientY - y0;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          moved = true;
+          if (dx < 0) next(); else prev();
+        } else if (Date.now() - t0 < 500 && Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+          moved = true;
+          tapAt(t.clientX);
+        }
+      }, { passive: true });
+
+      // mouse/desktop, and any tap that did not come through touch
+      rootEl.addEventListener("click", function (e) {
+        if (skipBtn && skipBtn.contains(e.target)) return;
+        if (moved) { moved = false; return; }
+        tapAt(e.clientX);
+      });
+    }
+
+    function tapAt(clientX) {
+      var b = rootEl.getBoundingClientRect();
+      if (clientX - b.left < b.width * 0.33) prev();
+      else next();
+    }
+
+    function finish() {
+      if (!running) return;
+      stop();
+      goToLetter();
+    }
+
+    return {
+      start: function () {
+        build();
+        if (!slides.length) { goToLetter(); return; }
+        // keep the dot-fill animation in lockstep with the real hold
+        if (rootEl) rootEl.style.setProperty("--hold", PHOTO_HOLD_MS + "ms");
+        running = true;
+        show(0, true);
+        schedule();
+      },
+      stop: function () {
+        running = false;
+        clearTimeout(timer);
+        timer = null;
+      },
+      next: next,
+      prev: prev,
+      /** For the console: BDay.collage.goTo(4) */
+      goTo: function (i) { if (running) { show(i); schedule(); } }
+    };
+  })();
+
+  /* Start the slideshow on entry, stop it on exit, using the event that
+     showScreen already dispatches. */
+  document.addEventListener("screenchange", function (e) {
+    if (e.detail.screen === "collage") collage.start();
+    else collage.stop();
+  });
+
+  /* ============================================================
+     The screen handoffs.
+     ============================================================ */
+
+  /** Called once both candles are out and the smoke has cleared. */
   function goToCollage() {
     dbg.phase("→ collage");
     showScreen("collage");
+  }
+
+  /* PLACEHOLDER — the letter screen comes next.
+     Called after the last photo (09, the chai cups). */
+  function goToLetter() {
+    dbg.phase("→ letter");
+    showScreen("letter");
   }
 
   /* ============================================================
@@ -912,9 +1130,12 @@
     allFlamesOut: allFlamesOut,
     reachBirthday: reachBirthday,
     blowout: blowout,
+    collage: collage,
+    photos: PHOTOS,
     blowTuning: blowout.tuning,  // tweak thresholds live: BDay.blowTuning.RATIO_MIN = 1.5
     blowDebug: blowout.debug,    // BDay.blowDebug() while blowing, to read levels
     goToCollage: goToCollage,
+    goToLetter: goToLetter,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO }
   };
 })();

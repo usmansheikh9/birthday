@@ -197,10 +197,30 @@
        tap to open a lightbox. Keep images lazy-loaded.
        ========================================================== -->
   <section class="screen screen--collage" data-screen="collage">
-    <div class="placeholder">
-      <h2>Us, mostly</h2>
-      <p>Photos &amp; videos go here &#128248;</p>
-      <!-- TODO: <div class="collage-grid"> ... </div> -->
+    <div class="collage" id="collage">
+
+      <p class="collage__caption">us, so far &#128149;</p>
+
+      <!-- Polaroid card. The slides themselves are built by script.js from
+           the PHOTOS array, so adding 10.jpg means editing that array only. -->
+      <div class="pola" id="pola">
+        <div class="pola__well">
+          <div class="pola__slides" id="pola-slides"></div>
+          <!-- vintage treatment, stacked above the photo -->
+          <div class="pola__grain" aria-hidden="true"></div>
+          <div class="pola__vignette" aria-hidden="true"></div>
+        </div>
+        <div class="pola__mat">
+          <span class="pola__count" id="pola-count">1 / 9</span>
+        </div>
+      </div>
+
+      <!-- 9 dots; the active one is a pill that fills over the hold -->
+      <div class="dots" id="collage-dots" aria-label="Photo progress"></div>
+
+      <button class="btn btn--ghost collage__skip" id="collage-skip" type="button">
+        skip to the letter &rarr;
+      </button>
     </div>
   </section>
 
