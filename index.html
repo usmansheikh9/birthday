@@ -152,28 +152,44 @@
       </div>
     </div>
 
-    <!-- Shown only once the countdown hits zero -->
-    <div class="celebrate" id="celebrate" hidden>
-      <button class="btn btn--primary" id="btn-continue" type="button">Let&rsquo;s go &#127881;</button>
+    <!-- ==========================================================
+         BLOW-OUT PANEL
+         Hidden until the countdown hits zero. reachBirthday() ->
+         onBirthdayReached() -> blowout.begin() reveals it.
+         ?skip reaches the same path, so this shows up immediately.
+         ========================================================== -->
+    <div class="blow" id="blow" hidden>
+
+      <p class="blow__title" id="blow-title">Make a wish and blow out your candles</p>
+
+      <!-- animated mic + wind hint (pure CSS) -->
+      <div class="blow__hint" id="blow-hint" aria-hidden="true">
+        <span class="mic"><span class="mic__stand"></span></span>
+        <span class="wind"><i></i><i></i><i></i></span>
+      </div>
+
+      <!-- live blow meter: fills as she blows -->
+      <div class="blow__meter" id="blow-meter" hidden>
+        <span class="blow__meter-fill" id="blow-fill"></span>
+      </div>
+
+      <p class="blow__note" id="blow-note">Tap to allow your mic so you can blow out the candles.</p>
+
+      <button class="btn btn--primary" id="btn-mic" type="button">Allow mic &#127908;</button>
+
+      <!-- Fallback. Revealed on permission denial / no mic / ~8s of nothing.
+           The candles themselves are also tappable the whole time. -->
+      <button class="btn btn--ghost" id="btn-tap" type="button" hidden>
+        or just tap the candles &#128367;
+      </button>
     </div>
 
     <p class="footnote">made with &#128155;</p>
   </section>
 
-  <!-- ==========================================================
-       SCREEN 2 - MIC CANDLE BLOW-OUT   (TODO)
-       Wire up: getUserMedia -> AnalyserNode -> volume threshold ->
-       extinguishFlame(0), then extinguishFlame(1), then showScreen('collage').
-       The .flame elements live on the cake screen; either move the cake
-       markup into a shared component or clone it into this section.
-       ========================================================== -->
-  <section class="screen screen--blow" data-screen="blow">
-    <div class="placeholder">
-      <h2>Make a wish&hellip;</h2>
-      <p>Blow out the candles &#128367;</p>
-      <!-- TODO: mic permission prompt + live level meter -->
-    </div>
-  </section>
+  <!-- NOTE: there is no separate "blow" screen any more. The blow-out
+       happens in place on the cake screen above, because that is where the
+       .flame elements live. goToCollage() is what runs once both are out. -->
 
   <!-- ==========================================================
        SCREEN 3 - PHOTO / VIDEO COLLAGE   (TODO)
