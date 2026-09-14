@@ -792,6 +792,28 @@ body::before {
   pointer-events: none;
 }
 
+/* ---------- 10b. DEBUG READOUT (?debug) ----------
+   Created by script.js only when ?debug is in the URL. pointer-events:none
+   is load-bearing: it must never intercept a tap meant for the candles. */
+.dbg {
+  position: fixed;
+  z-index: 100;
+  top:  calc(env(safe-area-inset-top, 0px)  + 6px);
+  left: calc(env(safe-area-inset-left, 0px) + 6px);
+  max-width: min(64vw, 240px);
+  padding: 7px 9px;
+  border-radius: 10px;
+  font: 500 11px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* pre-wrap, not pre: the metric rows stay column-aligned, but a long
+     phase string wraps inside the box instead of spilling out of it */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #EAFBF2;
+  background: rgba(26, 18, 30, .84);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+  pointer-events: none;
+}
+
 /* ---------- 11. ACCESSIBILITY ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -803,10 +825,19 @@ body::before {
   .balloon { display: none; }
 }
 
-/* Very short viewports (landscape / small windows).
-   --u already scales the whole screen down with viewport height, so this
-   only drops the two bits of chrome that earn their space the least. */
-@media (max-height: 620px) {
+/* Shorter viewports. A phone in portrait with the browser's URL bar showing
+   is often only ~700-780 CSS px tall, and the blow-out panel adds a second
+   button — so tighten the stack before anything drops below the fold. */
+@media (max-height: 800px) {
+  .screen.is-active { gap: clamp(8px, calc(14 * var(--u)), 20px); }
+  .blow { gap: calc(8 * var(--u)); }
+}
+
+/* Very short (landscape, or a phone with heavy chrome): drop the two bits
+   that earn their space the least. --u already scales everything else. */
+@media (max-height: 740px) {
   .intro__kicker { display: none; }
   .footnote { display: none; }
+  /* the mic/wind hint is decoration; the buttons below it are not */
+  .blow__hint { display: none; }
 }

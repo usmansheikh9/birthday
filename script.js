@@ -29,6 +29,58 @@
   var TARGET_MS  = new Date(TARGET_ISO).getTime();
 
   /* ============================================================
+     1b. ON-SCREEN DEBUG READOUT
+     Add ?debug to the URL to pin a live readout in the top-left corner.
+     Phones make the devtools console impractical, so this is how you read
+     the real mic numbers while actually blowing at the thing.
+
+     It is pointer-events:none, so it can never swallow a tap.
+     ============================================================ */
+
+  var dbg = (function () {
+    var on = new URLSearchParams(window.location.search).has("debug");
+    var box = null;
+    var phase = "loading";
+    var rows = {};
+    var dirty = false;
+
+    function ensure() {
+      if (box || !on) return;
+      box = document.createElement("div");
+      box.className = "dbg";
+      box.setAttribute("aria-hidden", "true");
+      document.body.appendChild(box);
+    }
+
+    function paint() {
+      if (!on || !dirty) return;
+      ensure();
+      var out = "phase  " + phase;
+      Object.keys(rows).forEach(function (k) {
+        out += "\n" + (k + "      ").slice(0, 6) + " " + rows[k];
+      });
+      box.textContent = out;
+      dirty = false;
+    }
+
+    return {
+      enabled: on,
+      /** Big state transitions — always repainted immediately. */
+      phase: function (p) {
+        phase = p;
+        dirty = true;
+        paint();
+      },
+      /** Per-frame metrics. Call freely; painting is throttled by paint(). */
+      set: function (o) {
+        rows = o;
+        dirty = true;
+      },
+      flush: paint
+    };
+  })();
+
+  /* ============================================================
      2. SCREEN MANAGER
      Every <section class="screen" data-screen="name"> is a page.
      Only one carries .is-active at a time.
@@ -277,20 +329,52 @@
 
     /* Tuned to be forgiving without firing on room noise. Exposed on
        window.BDay.blowTuning so these can be adjusted live on a phone. */
+    /* Re-tuned after real-hardware testing, where blowing failed to trigger
+       but talking did — the exact opposite of what we want.
+
+       Why that happened: a voice's fundamental is 85-255Hz, which sits
+       squarely inside the 50-500Hz "blow" band. A loud low-pitched voice
+       therefore beats a level-plus-ratio test, while a real breath gets
+       flattened by the phone's own wind/noise suppression (Android often
+       applies it in hardware even when the constraint asks it not to).
+
+       So the level gates are now much more forgiving, and speech is
+       rejected on SHAPE instead of loudness: a voice is harmonic, so its
+       spectrum is spiky, while breath is noise, so its spectrum is flat.
+       Spectral flatness separates them regardless of pitch or volume.
+
+       Everything here is live-tunable: BDay.blowTuning.MIN_LEVEL = 10 etc.
+       Set FLATNESS_MIN to 0 to disable the speech veto entirely. */
     var TUNING = {
-      LOW_HZ:      [50, 500],    // the "blow" band
-      MID_HZ:      [1000, 3500], // the "speech" band we compare against
+      LOW_HZ:      [40, 500],    // the "blow" band
+      MID_HZ:      [1200, 4000], // the "speech" band we compare against
+      FLAT_HZ:     [80, 4500],   // band the flatness measure runs over
+      WARMUP_MS:    350,         // ignore this much at the start — Android mics
+                                 // emit silence/ramp while the stream spins up,
+                                 // and calibrating on that sets the floor far
+                                 // too low, which makes everything "loud"
       CALIBRATE_MS: 700,         // how long we listen to the room first
+      FLOOR_ADAPT:  0.02,        // how fast the floor keeps tracking the room
       FLOOR_MARGIN: 14,          // low band must beat the room by this (0-255)
-      MIN_LEVEL:    34,          // absolute floor, for very quiet rooms
-      RATIO_MIN:    1.7,         // low/mid ratio required
-      ATTACK_MS:    160,         // must be blowing this long before it counts
-      CHARGE_MS:    520,         // sustained blow needed to finish the job
-      DECAY_MS:     800,         // how fast the charge bleeds back down
+      MIN_LEVEL:    18,          // absolute floor, for very quiet rooms
+      RATIO_MIN:    1.15,        // low/mid ratio required (loose now)
+      /* Spectral-flatness speech veto. DISABLED BY DEFAULT (0).
+         The idea is sound — a voice is harmonic and spiky, a breath is
+         noise and flat — but measured over a wide band it also punishes a
+         breath, because a breath is heavily tilted toward the low end and
+         that reads as "not flat" too. In testing it vetoed real blows.
+         Since a missed blow is the thing we least want, it ships off.
+         The number is still computed and shown in the ?debug readout, so
+         if talking turns out to trigger things on your phone you can watch
+         the real values and switch it on:  BDay.blowTuning.FLATNESS_MIN = 0.3 */
+      FLATNESS_MIN: 0,
+      ATTACK_MS:    120,         // must be blowing this long before it counts
+      CHARGE_MS:    420,         // sustained blow needed to finish the job
+      DECAY_MS:     900,         // how fast the charge bleeds back down
       FIRST_AT:     0.45,        // charge at which the first candle goes out
-      FALLBACK_MS:  8000,        // offer the tap button after this much listening
-      PATIENCE_MS: 14000         // ...or this long after the panel appears, even
-                                 // if the permission prompt is never answered
+      FALLBACK_MS:  8000,        // (tap button is shown immediately now; this
+                                 // just re-states the offer in the copy)
+      PATIENCE_MS: 14000
     };
 
     var ui = {};
@@ -299,7 +383,7 @@
     var rafId = null, lastFrame = 0;
     var noiseFloor = 0, calibSum = 0, calibCount = 0, calibDone = false, calibStart = 0;
     var charge = 0, smoothLevel = 0, outCount = 0, blowRun = 0;
-    var fallbackTimer = null, patienceTimer = null;
+    var fallbackTimer = null, patienceTimer = null, lastDbg = 0;
 
     var cakeEl = document.getElementById("cake");
     var candlesEl = document.querySelector(".candles");
@@ -326,6 +410,7 @@
       if (!ui.panel) return;
 
       ui.panel.hidden = false;
+      dbg.phase("ready: tap or allow mic");
 
       // The candles are a tap target from this moment on — the quiet half
       // of the fallback, live well before the tap button is offered.
@@ -342,6 +427,11 @@
 
       ui.micBtn.addEventListener("click", requestMic);
       ui.tapBtn.addEventListener("click", manual);
+
+      // The tap route is the guaranteed one, so it is offered from the
+      // start rather than held back behind a timeout. If the mic works,
+      // great; if it does not, she never has to discover that first.
+      ui.tapBtn.hidden = false;
 
       // Safety net independent of the mic. If she never answers the
       // permission prompt, getUserMedia simply never settles and the
@@ -366,6 +456,7 @@
     function requestMic() {
       ui.micBtn.disabled = true;
       ui.note.textContent = "Allow the mic when your phone asks…";
+      dbg.phase("requesting mic");
 
       navigator.mediaDevices.getUserMedia({
         audio: {
@@ -397,6 +488,7 @@
       freqData = new Uint8Array(analyser.frequencyBinCount);
 
       listening = true;
+      dbg.phase("calibrating");
       ui.micBtn.hidden = true;
       ui.meter.hidden = false;
       ui.title.textContent = "Make a wish… now blow!";
@@ -415,6 +507,7 @@
     function onMicFail(err) {
       // Denied, no device, or blocked by policy — all land here.
       console.warn("[blowout] mic unavailable:", err && err.name);
+      dbg.phase("mic blocked: " + ((err && err.name) || "?"));
       ui.micBtn.hidden = true;
       ui.meter.hidden = true;
       ui.note.textContent = "No problem — tap the candles instead.";
@@ -432,6 +525,35 @@
       return n ? sum / n : 0;
     }
 
+    /* Spectral flatness: geometric mean / arithmetic mean of the bins.
+       Noise (a breath) spreads energy evenly -> approaches 1.
+       A voice is harmonic, all peaks and valleys -> drops toward 0.
+       This is the measure that tells a breath from talking. */
+    function flatness(fromHz, toHz) {
+      var binHz = audioCtx.sampleRate / analyser.fftSize;
+      var from = Math.max(1, Math.floor(fromHz / binHz));
+      var to = Math.min(freqData.length - 1, Math.ceil(toHz / binHz));
+
+      // getByteFrequencyData hands back dB mapped onto 0-255. Flatness is
+      // only meaningful on LINEAR magnitudes — computed on the dB bytes it
+      // returns ~0.97 for everything, because they all sit in a narrow
+      // band of values. So map each bin back to linear first.
+      var minDb = analyser.minDecibels;
+      var span = analyser.maxDecibels - minDb;
+      var logSum = 0, sum = 0, n = 0;
+      for (var i = from; i <= to; i++) {
+        var db = minDb + (freqData[i] / 255) * span;
+        var lin = Math.pow(10, db / 20) + 1e-12;
+        logSum += Math.log(lin);
+        sum += lin;
+        n++;
+      }
+      if (!n) return 0;
+      var geo = Math.exp(logSum / n);
+      var arith = sum / n;
+      return arith > 0 ? Math.min(geo / arith, 1) : 0;
+    }
+
     function loop(now) {
       if (!listening || finished) return;
       rafId = requestAnimationFrame(loop);
@@ -444,13 +566,17 @@
       var low = bandAverage(TUNING.LOW_HZ[0], TUNING.LOW_HZ[1]);
       var mid = bandAverage(TUNING.MID_HZ[0], TUNING.MID_HZ[1]);
 
+      // Phase 0: let the mic stream settle before believing anything it says.
+      if (now - calibStart < TUNING.WARMUP_MS) return;
+
       // Phase 1: learn what this room sounds like when she is not blowing.
       if (!calibDone) {
         calibSum += low; calibCount++;
-        if (now - calibStart >= TUNING.CALIBRATE_MS) {
+        if (now - calibStart >= TUNING.WARMUP_MS + TUNING.CALIBRATE_MS) {
           noiseFloor = calibCount ? calibSum / calibCount : 0;
           calibDone = true;
           ui.note.textContent = "Blow on your mic 💨";
+          dbg.phase("listening - blow!");
         }
         return;
       }
@@ -458,17 +584,32 @@
       // Phase 2: is this a blow?
       var threshold = Math.max(noiseFloor + TUNING.FLOOR_MARGIN, TUNING.MIN_LEVEL);
       var ratio = low / (mid + 1);
-      var isBlowing = low > threshold && ratio > TUNING.RATIO_MIN;
+      var flat = flatness(TUNING.FLAT_HZ[0], TUNING.FLAT_HZ[1]);
+
+      var loudEnough = low > threshold;
+      var lowLeaning = ratio > TUNING.RATIO_MIN;
+      // the speech veto — spiky spectrum means a voice, so refuse it
+      var notAVoice = TUNING.FLATNESS_MIN <= 0 || flat >= TUNING.FLATNESS_MIN;
+      var isBlowing = loudEnough && lowLeaning && notAVoice;
 
       // How hard, 0..1 — drives the live flame lean. Deliberately NOT
       // gated below, so the flames react to every gust immediately even
       // if it is too short to actually count.
-      var raw = isBlowing ? Math.min((low - threshold) / 42, 1) : 0;
+      var raw = isBlowing ? Math.min((low - threshold) / 34, 1) : 0;
       smoothLevel += (raw - smoothLevel) * 0.35; // ease so it is not jittery
 
       // Attack gate: a blow only starts counting once it has held for
       // ATTACK_MS. This is what separates a breath from a knock or a
       // door slam, which can look spectrally identical but last ~70ms.
+      // Keep the floor tracking the room while she is NOT blowing. A
+      // one-shot calibration goes stale the moment anything changes (a fan,
+      // a mic that ramps up slowly, someone walking in); this self-corrects,
+      // and it means steady background noise gets absorbed rather than
+      // read as a permanent blow.
+      if (!isBlowing) {
+        noiseFloor += (low - noiseFloor) * TUNING.FLOOR_ADAPT;
+      }
+
       blowRun = isBlowing ? blowRun + dt : 0;
       var sustained = blowRun >= TUNING.ATTACK_MS;
 
@@ -479,6 +620,22 @@
 
       setBlow(Math.max(smoothLevel, charge * 0.55));
       ui.fill.style.width = (charge * 100).toFixed(1) + "%";
+
+      // live numbers, throttled so the DOM write is not per-frame
+      if (dbg.enabled && now - lastDbg > 110) {
+        lastDbg = now;
+        dbg.set({
+          low:    low.toFixed(0) + (loudEnough ? " ok" : " LOW"),
+          mid:    mid.toFixed(0),
+          ratio:  ratio.toFixed(2) + (lowLeaning ? " ok" : " LOW"),
+          flat:   flat.toFixed(2) + (notAVoice ? " ok" : " VOICE"),
+          floor:  noiseFloor.toFixed(0),
+          thresh: threshold.toFixed(0),
+          charge: (charge * 100).toFixed(0) + "%",
+          blow:   isBlowing ? "YES" : "no"
+        });
+        dbg.flush();
+      }
 
       if (charge >= TUNING.FIRST_AT && outCount === 0) putOutNext();
       if (charge >= 1) { putOutNext(); finish(); }
@@ -530,6 +687,7 @@
     function finish() {
       if (finished) return;
       finished = true;
+      dbg.phase("blown out");
 
       clearTimeout(fallbackTimer);
       clearTimeout(patienceTimer);
@@ -584,6 +742,7 @@
         return {
           low: +low.toFixed(1), mid: +mid.toFixed(1),
           ratio: +(low / (mid + 1)).toFixed(2),
+          flatness: +flatness(TUNING.FLAT_HZ[0], TUNING.FLAT_HZ[1]).toFixed(3),
           noiseFloor: +noiseFloor.toFixed(1),
           threshold: +Math.max(noiseFloor + TUNING.FLOOR_MARGIN, TUNING.MIN_LEVEL).toFixed(1),
           charge: +charge.toFixed(2)
@@ -597,6 +756,7 @@
      Called once both candles are out and the smoke has cleared.
      ============================================================ */
   function goToCollage() {
+    dbg.phase("→ collage");
     showScreen("collage");
   }
 
@@ -693,6 +853,7 @@
     // "almost time" is no longer true once we are at zero.
     if (el.kicker) el.kicker.hidden = true;
 
+    dbg.phase("zero reached");
     confetti.celebrate();
 
     onBirthdayReached();
@@ -727,6 +888,8 @@
   var forcedScreen = params.get("screen");
 
   showScreen(forcedScreen && screens[forcedScreen] ? forcedScreen : "cake");
+
+  dbg.phase(params.has("skip") ? "?skip -> zero" : "counting down");
 
   if (params.has("skip")) {
     // ?skip — test the zero state without waiting for the real date.
