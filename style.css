@@ -350,38 +350,29 @@ body::before {
    The ellipse radii are percentages of the background tile, and the tile
    width is a percentage of the tier — so each tier gets a whole number of
    drips at any screen size, with no gaps and no clipped half-drip at the
-   right edge. */
-   Two layers of drips, the second offset by half a tile and only 58% as
-   long, so lengths alternate long/short/long instead of reading as one
-   row of identical scallops. */
+   right edge.
+
+   Drip COUNT is chosen per tier so every drip comes out ~22u wide on all
+   three tiers, and each is a little deeper than it is half-wide. That
+   elongation is what makes them read as drips rather than as a row of
+   half-circle scallops. */
 .tier__frosting::after {
   content: "";
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background-image:
-    radial-gradient(ellipse 50% 100% at 50% 0%, var(--frost-2) 97%, rgba(255, 231, 240, 0) 100%),
-    radial-gradient(ellipse 50% 100% at 50% 0%, var(--frost-2) 97%, rgba(255, 231, 240, 0) 100%);
-  background-repeat: repeat-x, repeat-x;
+  background-image: radial-gradient(
+    ellipse 50% 100% at 50% 0%,
+    var(--frost-2) 97%,
+    rgba(255, 231, 240, 0) 100%
+  );
+  background-repeat: repeat-x;
 }
 
-/* first value = the long drips, second = the short offset ones */
-.tier--top .tier__frosting::after {
-  height: calc(15 * var(--u));
-  background-size: 25% 100%, 25% 58%;
-  background-position: 0 0, 12.5% 0;
-}
-.tier--mid .tier__frosting::after {
-  height: calc(17 * var(--u));
-  background-size: 20% 100%, 20% 58%;
-  background-position: 0 0, 10% 0;
-}
-.tier--bottom .tier__frosting::after {
-  height: calc(19 * var(--u));
-  background-size: 16.666% 100%, 16.666% 58%;
-  background-position: 0 0, 8.333% 0;
-}
+.tier--top    .tier__frosting::after { height: calc(17 * var(--u)); background-size: 16.666% 100%; } /*  6 drips */
+.tier--mid    .tier__frosting::after { height: calc(19 * var(--u)); background-size: 12.5%   100%; } /*  8 drips */
+.tier--bottom .tier__frosting::after { height: calc(21 * var(--u)); background-size: 10%     100%; } /* 10 drips */
 
 /* sponge */
 .tier__body {
@@ -438,9 +429,10 @@ body::before {
 .countdown {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: calc(8 * var(--u));
   width: 100%;
-  max-width: 360px;
+  /* scales with the column, so the pills never stretch on a wide screen */
+  max-width: calc(360 * var(--u));
   animation: popUp .6s cubic-bezier(.22, 1.4, .4, 1) backwards;
   animation-delay: .3s;
 }
@@ -452,8 +444,8 @@ body::before {
   justify-content: center;
   gap: 1px;
   min-width: 0; /* lets grid cells shrink instead of forcing overflow */
-  padding: 11px 2px 9px;
-  border-radius: 20px;
+  padding: calc(11 * var(--u)) calc(2 * var(--u)) calc(9 * var(--u));
+  border-radius: calc(20 * var(--u));
   background: rgba(255, 255, 255, .82);
   box-shadow: var(--shadow-chunk);
 }
@@ -461,7 +453,7 @@ body::before {
 .pill--secs { background: linear-gradient(180deg, #FFFFFF 0%, #FFE9F0 100%); }
 
 .pill__num {
-  font-size: clamp(19px, 6.6vw, 27px);
+  font-size: clamp(16px, calc(27 * var(--u)), 34px);
   font-weight: 700;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
@@ -481,7 +473,7 @@ body::before {
 }
 
 .pill__label {
-  font-size: 10.5px;
+  font-size: clamp(9px, calc(10.5 * var(--u)), 13px);
   font-weight: 500;
   letter-spacing: .07em;
   color: var(--ink-soft);
@@ -503,10 +495,10 @@ body::before {
 
 .btn {
   font-family: inherit;
-  font-size: 18px;
+  font-size: clamp(15px, calc(18 * var(--u)), 22px);
   font-weight: 600;
   color: #fff;
-  padding: 15px 34px;
+  padding: clamp(11px, calc(15 * var(--u)), 19px) clamp(24px, calc(34 * var(--u)), 42px);
   border: 0;
   border-radius: 999px;
   cursor: pointer;
@@ -526,7 +518,7 @@ body::before {
 
 .footnote {
   margin: 0;
-  font-size: 12px;
+  font-size: clamp(10px, calc(12 * var(--u)), 15px);
   color: var(--ink-soft);
 }
 
@@ -629,9 +621,10 @@ body::before {
   .balloon { display: none; }
 }
 
-/* Very short viewports (landscape / small phones): tighten things up. */
-@media (max-height: 680px) {
-  .screen.is-active { gap: 14px; }
-  :root { --cake-w: calc(196 * var(--u)); }
+/* Very short viewports (landscape / small windows).
+   --u already scales the whole screen down with viewport height, so this
+   only drops the two bits of chrome that earn their space the least. */
+@media (max-height: 620px) {
   .intro__kicker { display: none; }
+  .footnote { display: none; }
 }

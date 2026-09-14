@@ -176,20 +176,31 @@
       }
     }
 
+    /* The layout is a centred, phone-width column that stops growing at
+       --col-max. On a wide screen the window centre is still the column
+       centre, but the window EDGES are far out in the empty margins — so
+       bursts are anchored to the column, not to the window. */
+    function column() {
+      var app = document.getElementById("app");
+      var r = app ? app.getBoundingClientRect() : null;
+      if (!r || !r.width) return { left: 0, width: window.innerWidth };
+      return { left: r.left, width: r.width };
+    }
+
     return {
       /**
        * Fire a burst.
        * @param {object} [opts]
        * @param {number} [opts.count=90]   particles
-       * @param {number} [opts.x]          origin px (default: centre)
+       * @param {number} [opts.x]          origin px (default: column centre)
        * @param {number} [opts.y]          origin px (default: 45% height)
        * @param {number} [opts.power=13]   initial speed multiplier
        */
       fire: function (opts) {
         opts = opts || {};
-        var w = window.innerWidth, h = window.innerHeight;
+        var col = column(), h = window.innerHeight;
         spawn(
-          opts.x != null ? opts.x : w / 2,
+          opts.x != null ? opts.x : col.left + col.width / 2,
           opts.y != null ? opts.y : h * 0.45,
           opts.count || 90,
           opts.power || 13
@@ -197,14 +208,15 @@
         start();
       },
 
-      /** The full celebration: three staggered bursts from across the screen. */
+      /** The full celebration: four staggered bursts across the column. */
       celebrate: function () {
-        var w = window.innerWidth, h = window.innerHeight;
-        this.fire({ x: w / 2,      y: h * 0.42, count: 110, power: 15 });
+        var col = column(), h = window.innerHeight;
+        var at = function (f) { return col.left + col.width * f; };
         var self = this;
-        setTimeout(function () { self.fire({ x: w * 0.15, y: h * 0.55, count: 60, power: 12 }); }, 180);
-        setTimeout(function () { self.fire({ x: w * 0.85, y: h * 0.55, count: 60, power: 12 }); }, 340);
-        setTimeout(function () { self.fire({ x: w / 2,    y: h * 0.30, count: 70, power: 14 }); }, 620);
+        this.fire({ x: at(0.5),  y: h * 0.42, count: 110, power: 15 });
+        setTimeout(function () { self.fire({ x: at(0.15), y: h * 0.55, count: 60, power: 12 }); }, 180);
+        setTimeout(function () { self.fire({ x: at(0.85), y: h * 0.55, count: 60, power: 12 }); }, 340);
+        setTimeout(function () { self.fire({ x: at(0.5),  y: h * 0.30, count: 70, power: 14 }); }, 620);
       }
     };
   })();
@@ -248,6 +260,7 @@
 
   var el = {
     label:     document.getElementById("countdown-label"),
+    kicker:    document.querySelector(".intro__kicker"),
     name:      document.getElementById("her-name"),
     age:       document.getElementById("her-age"),
     countdown: document.getElementById("countdown"),
@@ -333,6 +346,9 @@
     el.label.textContent = "Happy Birthday, " + HER_NAME + "!";
     el.label.classList.add("is-birthday");
 
+    // "almost time" is no longer true once we are at zero.
+    if (el.kicker) el.kicker.hidden = true;
+
     el.celebrate.hidden = false;
 
     confetti.celebrate();
@@ -354,7 +370,7 @@
 
   // The "Let's go" button that appears at zero.
   el.continueBtn.addEventListener("click", function () {
-    confetti.fire({ count: 60, y: window.innerHeight * 0.6 });
+    confetti.fire({ count: 60, y: window.innerHeight * 0.62 });
 
     // TODO: point this at whichever screen should come next.
     //   showScreen("blow");
