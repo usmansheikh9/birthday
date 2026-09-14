@@ -1,0 +1,637 @@
+/* ============================================================
+   BIRTHDAY SITE — mobile-first (designed at ~390px, Galaxy S23 Ultra)
+   No build step. No framework. Just drop on GitHub Pages.
+   ============================================================ */
+
+/* ---------- 1. TOKENS ---------- */
+:root {
+  /* palette */
+  --peach:  #FFC2A0;
+  --peach-d:#FFA877;
+  --pink:   #FF8FB1;
+  --pink-d: #FF5E8A;
+  --mint:   #A8E6CF;
+  --mint-d: #6FD9B8;
+  --cream:  #FFF8ED;
+  --sun:    #FFD166;
+  --lilac:  #C9B6F5;
+  --ink:    #6B4455;
+  --ink-soft: rgba(107, 68, 85, .62);
+
+  /* cake sponge + frosting */
+  --sponge-1: #FFD9A8;
+  --sponge-2: #F7BE85;
+  --frost:    #FFF6EC;
+  --frost-2:  #FFE7F0;
+
+  /* chunky shadow used on every rounded surface */
+  --shadow-chunk: 0 4px 0 rgba(180, 120, 145, .18), 0 10px 22px rgba(180, 120, 145, .18);
+
+  /* ============================================================
+     RESPONSIVE SCALE SYSTEM
+     Everything structural is sized in --u ("design pixels"), so the
+     whole screen scales as one piece and never loses its proportions.
+
+     --col   the phone-shaped content column. Grows with the viewport but
+             stops at --col-max, so tablets and desktop get a centred
+             phone-width card instead of a stretched-out layout.
+
+     --u     1px when the column is 358px wide — i.e. exactly 1px on a
+             390px phone, which keeps the original baseline untouched.
+             It is the smallest of three terms:
+               1. col / 358   -> shrinks on narrow phones, grows on big screens
+               2. 1.25px      -> hard cap, so the cake never becomes a giant
+               3. 100vh / 700 -> ties the unit to HEIGHT as well, so landscape
+                                 and short windows scale down instead of clipping
+     ============================================================ */
+  --gutter: calc(16px + max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)));
+  --col-max: 500px;
+  --col: min(calc(100vw - var(--gutter) * 2), var(--col-max));
+  --u: min(calc(var(--col) / 358), 1.25px, calc(100vh / 700));
+
+  --cake-w: calc(228 * var(--u));
+}
+
+/* svh is the viewport at its SMALLEST (mobile URL bar visible). Sizing
+   against it means the cake is never taller than the worst case, so it
+   does not resize as the address bar hides and shows while scrolling. */
+@supports (height: 100svh) {
+  :root { --u: min(calc(var(--col) / 358), 1.25px, calc(100svh / 700)); }
+}
+
+/* ---------- 2. RESET / PAGE SHELL ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  /* belt and braces: nothing may ever scroll sideways */
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: "Fredoka", ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+/* Soft gradient backdrop as a fixed layer — cheaper to repaint than
+   background-attachment:fixed on mobile, and it covers the safe areas. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 58%),
+    linear-gradient(168deg, #FFF6E9 0%, #FFE6D6 32%, #FFD9E6 64%, #DBF4E8 100%);
+}
+
+/* ---------- 3. SCREEN MANAGER ---------- */
+#app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* Keep the layout phone-shaped and centred on tablets / desktop. */
+  max-width: calc(var(--col-max) + var(--gutter) * 2);
+  margin-inline: auto;
+  min-height: 100vh;
+  min-height: 100dvh; /* dvh avoids the mobile URL-bar jump */
+  /* Respect the notch / rounded corners / gesture bar */
+  padding-top:    calc(env(safe-area-inset-top, 0px)    + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left:   var(--gutter);
+  padding-right:  var(--gutter);
+}
+
+.screen { display: none; }
+
+.screen.is-active {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, calc(22 * var(--u)), 30px);
+  width: 100%;
+  animation: screenIn .45s cubic-bezier(.22, 1, .36, 1) backwards;
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- 4. INTRO / HEADINGS ---------- */
+.intro {
+  text-align: center;
+  animation: popUp .6s cubic-bezier(.22, 1.4, .4, 1) backwards;
+  animation-delay: .05s;
+}
+
+.intro__kicker {
+  margin: 0 0 calc(6 * var(--u));
+  font-size: clamp(12px, calc(14 * var(--u)), 17px);
+  font-weight: 500;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+}
+
+.intro__title {
+  margin: 0;
+  /* clamped so the heading stays readable even when --u shrinks in landscape */
+  font-size: clamp(20px, calc(29 * var(--u)), 38px);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+
+#her-name, #her-age {
+  color: var(--pink-d);
+}
+
+/* State applied by script.js the moment the countdown hits zero */
+.intro__title.is-birthday {
+  font-size: clamp(24px, calc(38 * var(--u)), 48px);
+  background: linear-gradient(100deg, var(--pink-d), var(--peach-d) 45%, var(--mint-d));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: popUp .7s cubic-bezier(.22, 1.5, .36, 1) backwards;
+}
+
+@keyframes popUp {
+  from { opacity: 0; transform: translateY(16px) scale(.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   5. THE CAKE — pure CSS, no images
+   ============================================================ */
+.cake-stage {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.cake {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* bounce in on load */
+  animation: cakeIn .85s cubic-bezier(.24, 1.45, .35, 1) backwards;
+  animation-delay: .12s;
+  transform-origin: 50% 100%;
+}
+
+@keyframes cakeIn {
+  0%   { opacity: 0; transform: translateY(48px) scale(.62); }
+  55%  { opacity: 1; transform: translateY(-8px) scale(1.06); }
+  75%  { transform: translateY(2px) scale(.985); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ---- 5a. Candles: two big number "2"s ---- */
+.candles {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(14 * var(--u));
+  margin-bottom: calc(-4 * var(--u));
+  z-index: 4;
+}
+
+.candle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.candle__digit {
+  font-size: calc(62 * var(--u));
+  font-weight: 700;
+  line-height: .92;
+  /* waxy candy gradient */
+  background: linear-gradient(175deg, #FFFFFF 0%, #FFD3E2 26%, var(--pink) 58%, var(--pink-d) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: var(--pink);
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 calc(2 * var(--u)) 0 rgba(255, 94, 138, .35));
+}
+
+/* A text line box has dead space above the glyph: for Fredoka 700 the "2"
+   starts painting 0.113em below the top of its box (measured), which at
+   62u font-size is 7u. Without compensating, the wick and flame visibly
+   float above the digit. We pull the stack down by that 7u plus 2u so the
+   wick tucks INTO the top of the numeral. Both terms are in --u, so the
+   relationship holds at every screen size. */
+.wick {
+  width: calc(3 * var(--u));
+  height: calc(7 * var(--u));
+  margin-bottom: calc(-9 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background: #7A5C4E;
+}
+
+/* ---- 5b. Flames ----
+   Each flame is its own element with the shared class "flame" so a later
+   mic feature can kill them one by one:  extinguishFlame(0) / (1). */
+.flame {
+  position: relative;
+  display: block;
+  width: calc(18 * var(--u));
+  height: calc(26 * var(--u));
+  margin-bottom: calc(1 * var(--u));
+  transform-origin: 50% 100%;
+  transition: opacity .35s ease, transform .35s cubic-bezier(.3, .8, .4, 1);
+}
+
+.flame__core {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: calc(15 * var(--u));
+  height: calc(24 * var(--u));
+  margin-left: calc(-7.5 * var(--u));
+  border-radius: 50% 50% 48% 48% / 88% 88% 22% 22%;
+  background: linear-gradient(180deg, #FFF6C9 0%, var(--sun) 34%, #FF9F43 66%, #FF6B35 100%);
+  transform-origin: 50% 100%;
+  animation: flicker .7s ease-in-out infinite alternate;
+}
+
+/* inner hot core */
+.flame__core::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(3 * var(--u));
+  width: calc(7 * var(--u));
+  height: calc(11 * var(--u));
+  margin-left: calc(-3.5 * var(--u));
+  border-radius: 50% 50% 48% 48% / 88% 88% 22% 22%;
+  background: linear-gradient(180deg, #FFFDF2, #FFF0A8);
+  opacity: .9;
+}
+
+/* soft halo — animating opacity only (no box-shadow) keeps it cheap */
+.flame__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(64 * var(--u));
+  height: calc(64 * var(--u));
+  margin: calc(-32 * var(--u)) 0 0 calc(-32 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 90, .55) 0%, rgba(255, 175, 70, .22) 38%, rgba(255, 170, 60, 0) 68%);
+  animation: glowPulse 1.6s ease-in-out infinite alternate;
+}
+
+/* stagger the two flames so they never flicker in lockstep */
+.candle[data-candle="1"] .flame__core { animation-duration: .58s; animation-delay: -.22s; }
+.candle[data-candle="1"] .flame__glow { animation-duration: 1.9s; animation-delay: -.6s; }
+
+@keyframes flicker {
+  0%   { transform: scale(1) rotate(-2deg) translateY(0); }
+  40%  { transform: scale(1.06, .95) rotate(1.5deg) translateY(calc(-1 * var(--u))); }
+  70%  { transform: scale(.95, 1.07) rotate(-1deg) translateY(0); }
+  100% { transform: scale(1.03, 1.01) rotate(2deg) translateY(calc(-1.5 * var(--u))); }
+}
+
+@keyframes glowPulse {
+  from { opacity: .55; transform: scale(.88); }
+  to   { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Blown-out state — hook for the mic screen. Add/remove class "is-out". */
+.flame.is-out {
+  opacity: 0;
+  transform: translateY(calc(-6 * var(--u))) scale(.3);
+}
+.flame.is-out .flame__core,
+.flame.is-out .flame__glow { animation: none; }
+
+/* ---- 5c. Tiers ---- */
+.tier {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.tier--top    { width: calc(var(--cake-w) * .56); z-index: 3; }
+.tier--mid    { width: calc(var(--cake-w) * .78); z-index: 2; }
+.tier--bottom { width: var(--cake-w);             z-index: 1; }
+
+/* frosting cap (drips hang off the bottom via ::after) */
+.tier__frosting {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, var(--frost) 0%, var(--frost-2) 100%);
+  border-radius: calc(16 * var(--u)) calc(16 * var(--u)) calc(6 * var(--u)) calc(6 * var(--u));
+  box-shadow: inset 0 calc(2 * var(--u)) 0 rgba(255, 255, 255, .9);
+}
+
+.tier--top    .tier__frosting { height: calc(22 * var(--u)); }
+.tier--mid    .tier__frosting { height: calc(24 * var(--u)); }
+.tier--bottom .tier__frosting { height: calc(26 * var(--u)); }
+
+/* Scalloped drips hanging off the frosting.
+   The ellipse radii are percentages of the background tile, and the tile
+   width is a percentage of the tier — so each tier gets a whole number of
+   drips at any screen size, with no gaps and no clipped half-drip at the
+   right edge. */
+   Two layers of drips, the second offset by half a tile and only 58% as
+   long, so lengths alternate long/short/long instead of reading as one
+   row of identical scallops. */
+.tier__frosting::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-image:
+    radial-gradient(ellipse 50% 100% at 50% 0%, var(--frost-2) 97%, rgba(255, 231, 240, 0) 100%),
+    radial-gradient(ellipse 50% 100% at 50% 0%, var(--frost-2) 97%, rgba(255, 231, 240, 0) 100%);
+  background-repeat: repeat-x, repeat-x;
+}
+
+/* first value = the long drips, second = the short offset ones */
+.tier--top .tier__frosting::after {
+  height: calc(15 * var(--u));
+  background-size: 25% 100%, 25% 58%;
+  background-position: 0 0, 12.5% 0;
+}
+.tier--mid .tier__frosting::after {
+  height: calc(17 * var(--u));
+  background-size: 20% 100%, 20% 58%;
+  background-position: 0 0, 10% 0;
+}
+.tier--bottom .tier__frosting::after {
+  height: calc(19 * var(--u));
+  background-size: 16.666% 100%, 16.666% 58%;
+  background-position: 0 0, 8.333% 0;
+}
+
+/* sponge */
+.tier__body {
+  position: relative;
+  border-radius: 0 0 calc(14 * var(--u)) calc(14 * var(--u));
+  background:
+    linear-gradient(180deg, var(--sponge-1) 0%, var(--sponge-2) 100%);
+  box-shadow:
+    inset 0 calc(-6 * var(--u)) calc(10 * var(--u)) rgba(190, 120, 70, .16),
+    inset calc(6 * var(--u)) 0 calc(10 * var(--u)) rgba(255, 255, 255, .22);
+}
+
+.tier--top    .tier__body { height: calc(32 * var(--u)); }
+.tier--mid    .tier__body { height: calc(40 * var(--u)); }
+.tier--bottom .tier__body { height: calc(48 * var(--u)); }
+
+/* little candy dots on the sponge */
+.dot {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(7 * var(--u));
+  height: calc(7 * var(--u));
+  margin: calc(-3.5 * var(--u)) 0 0 calc(-3.5 * var(--u));
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+}
+
+/* sprinkles sit on the frosting */
+.sprinkle {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(8 * var(--u));
+  height: calc(3.5 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background: var(--c);
+  transform: translate(-50%, -50%) rotate(var(--r));
+}
+
+/* ---- 5d. Plate ---- */
+.plate {
+  width: calc(var(--cake-w) * 1.18);
+  height: calc(12 * var(--u));
+  margin-top: calc(-2 * var(--u));
+  border-radius: 0 0 calc(40 * var(--u)) calc(40 * var(--u));
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3E2EC 100%);
+  box-shadow: 0 calc(8 * var(--u)) calc(16 * var(--u)) rgba(180, 120, 145, .22);
+}
+
+/* ============================================================
+   6. COUNTDOWN PILLS
+   ============================================================ */
+.countdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+  animation: popUp .6s cubic-bezier(.22, 1.4, .4, 1) backwards;
+  animation-delay: .3s;
+}
+
+.pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0; /* lets grid cells shrink instead of forcing overflow */
+  padding: 11px 2px 9px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: var(--shadow-chunk);
+}
+
+.pill--secs { background: linear-gradient(180deg, #FFFFFF 0%, #FFE9F0 100%); }
+
+.pill__num {
+  font-size: clamp(19px, 6.6vw, 27px);
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: var(--ink);
+}
+
+.pill--secs .pill__num { color: var(--pink-d); }
+
+/* the pulse fired on every tick */
+.pill--secs.is-tick .pill__num { animation: tick .34s cubic-bezier(.3, 1.6, .5, 1); }
+
+@keyframes tick {
+  0%   { transform: scale(1); }
+  38%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+.pill__label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  color: var(--ink-soft);
+}
+
+/* countdown fades out once we hit zero */
+.countdown.is-done {
+  opacity: 0;
+  transform: scale(.94);
+  transition: opacity .5s ease, transform .5s ease;
+  pointer-events: none;
+}
+
+/* ---------- 7. BUTTONS ---------- */
+.celebrate {
+  animation: popUp .6s cubic-bezier(.22, 1.5, .4, 1) backwards;
+  animation-delay: .35s;
+}
+
+.btn {
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  padding: 15px 34px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .14s cubic-bezier(.3, 1.4, .5, 1), box-shadow .14s ease;
+}
+
+.btn--primary {
+  background: linear-gradient(180deg, var(--pink) 0%, var(--pink-d) 100%);
+  box-shadow: 0 5px 0 #E04A76, 0 12px 22px rgba(224, 74, 118, .35);
+}
+
+.btn--primary:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #E04A76, 0 6px 12px rgba(224, 74, 118, .3);
+}
+
+.footnote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------- 8. PLACEHOLDER SCREENS ---------- */
+.placeholder {
+  text-align: center;
+  padding: 28px 24px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .72);
+  box-shadow: var(--shadow-chunk);
+}
+.placeholder h2 { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
+.placeholder p  { margin: 0; color: var(--ink-soft); }
+
+/* ============================================================
+   9. BACKGROUND DECOR — balloons + sparkles
+   ============================================================ */
+.decor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;   /* clips drifting elements so they can't widen the page */
+  pointer-events: none;
+}
+
+.balloon {
+  position: absolute;
+  bottom: -140px;
+  width: 38px;
+  height: 47px;
+  border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+  opacity: .5;
+  animation: floatUp linear infinite;
+}
+
+/* the string */
+.balloon::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1.5px;
+  height: 34px;
+  margin-left: -.75px;
+  background: rgba(107, 68, 85, .22);
+  border-radius: 2px;
+}
+
+.balloon--1 { left: 8%;  background: var(--pink);  animation-duration: 21s; animation-delay:  -2s; }
+.balloon--2 { left: 34%; background: var(--mint);  animation-duration: 27s; animation-delay:  -9s; width: 30px; height: 38px; }
+.balloon--3 { left: 63%; background: var(--peach); animation-duration: 24s; animation-delay: -15s; }
+.balloon--4 { left: 86%; background: var(--lilac); animation-duration: 30s; animation-delay:  -5s; width: 26px; height: 33px; }
+
+@keyframes floatUp {
+  0%   { transform: translate3d(0, 0, 0) rotate(-6deg); }
+  50%  { transform: translate3d(18px, -55vh, 0) rotate(6deg); }
+  100% { transform: translate3d(-10px, -125vh, 0) rotate(-4deg); }
+}
+
+.sparkle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+  opacity: 0;
+  animation: twinkle 3.6s ease-in-out infinite;
+}
+
+.sparkle--1 { top: 12%; left: 14%; animation-delay: 0s;    }
+.sparkle--2 { top: 21%; left: 82%; animation-delay: .8s;  background: var(--sun); }
+.sparkle--3 { top: 46%; left: 6%;  animation-delay: 1.6s; width: 10px; height: 10px; }
+.sparkle--4 { top: 58%; left: 91%; animation-delay: 2.3s; background: var(--pink); width: 11px; height: 11px; }
+.sparkle--5 { top: 76%; left: 20%; animation-delay: 1.1s; background: var(--mint); }
+.sparkle--6 { top: 86%; left: 72%; animation-delay: 2.9s; width: 9px; height: 9px; }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0;   transform: scale(.4) rotate(0deg); }
+  50%      { opacity: .85; transform: scale(1)  rotate(45deg); }
+}
+
+/* ---------- 10. CONFETTI CANVAS ---------- */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- 11. ACCESSIBILITY ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .sparkle { opacity: .6; }
+  .balloon { display: none; }
+}
+
+/* Very short viewports (landscape / small phones): tighten things up. */
+@media (max-height: 680px) {
+  .screen.is-active { gap: 14px; }
+  :root { --cake-w: calc(196 * var(--u)); }
+  .intro__kicker { display: none; }
+}

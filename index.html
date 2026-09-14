@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- viewport-fit=cover is required for env(safe-area-inset-*) to report real values -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FFE8D6" />
+<meta name="color-scheme" content="light" />
+<title>Happy Birthday</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     BACKGROUND DECOR (fixed, behind everything, pointer-events:none)
+     ============================================================ -->
+<div class="decor" aria-hidden="true">
+  <span class="balloon balloon--1"></span>
+  <span class="balloon balloon--2"></span>
+  <span class="balloon balloon--3"></span>
+  <span class="balloon balloon--4"></span>
+  <span class="sparkle sparkle--1"></span>
+  <span class="sparkle sparkle--2"></span>
+  <span class="sparkle sparkle--3"></span>
+  <span class="sparkle sparkle--4"></span>
+  <span class="sparkle sparkle--5"></span>
+  <span class="sparkle sparkle--6"></span>
+</div>
+
+<!-- Confetti draws here. Fixed + pointer-events:none so it never blocks taps. -->
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+<!-- ============================================================
+     #app - the screen manager root.
+     Every direct child .screen is a full page. showScreen(name)
+     in script.js toggles .is-active by data-screen value.
+     ============================================================ -->
+<main id="app">
+
+  <!-- ==========================================================
+       SCREEN 1 - CAKE + COUNTDOWN
+       ========================================================== -->
+  <section class="screen screen--cake is-active" data-screen="cake">
+
+    <header class="intro">
+      <p class="intro__kicker">&#127874; almost time &#127874;</p>
+      <!-- [HER NAME] - the name text comes from HER_NAME in script.js -->
+      <h1 class="intro__title" id="countdown-label">
+        <span id="her-name">Alishba</span> turns <span id="her-age">22</span> in
+      </h1>
+    </header>
+
+    <!-- ---------- THE CAKE (pure CSS, zero images) ---------- -->
+    <div class="cake-stage">
+      <div class="cake" id="cake">
+
+        <!-- Number candles spelling "22".
+             Each .flame is its own element sharing class "flame" so a later
+             feature (mic blow-out) can extinguish them one at a time.
+             See extinguishFlame(i) / relightFlames() in script.js. -->
+        <div class="candles">
+          <div class="candle" data-candle="0">
+            <span class="flame" data-flame="0">
+              <span class="flame__glow"></span>
+              <span class="flame__core"></span>
+            </span>
+            <span class="wick"></span>
+            <span class="candle__digit">2</span>
+          </div>
+          <div class="candle" data-candle="1">
+            <span class="flame" data-flame="1">
+              <span class="flame__glow"></span>
+              <span class="flame__core"></span>
+            </span>
+            <span class="wick"></span>
+            <span class="candle__digit">2</span>
+          </div>
+        </div>
+
+        <!-- TOP TIER -->
+        <div class="tier tier--top">
+          <div class="tier__frosting">
+            <span class="sprinkle" style="--x:18%;--y:38%;--r:24deg;--c:var(--pink)"></span>
+            <span class="sprinkle" style="--x:44%;--y:62%;--r:-38deg;--c:var(--mint)"></span>
+            <span class="sprinkle" style="--x:70%;--y:34%;--r:66deg;--c:var(--sun)"></span>
+            <span class="sprinkle" style="--x:86%;--y:66%;--r:-12deg;--c:var(--pink)"></span>
+          </div>
+          <div class="tier__body"></div>
+        </div>
+
+        <!-- MIDDLE TIER -->
+        <div class="tier tier--mid">
+          <div class="tier__frosting">
+            <span class="sprinkle" style="--x:12%;--y:40%;--r:-28deg;--c:var(--mint)"></span>
+            <span class="sprinkle" style="--x:34%;--y:66%;--r:48deg;--c:var(--sun)"></span>
+            <span class="sprinkle" style="--x:56%;--y:32%;--r:-56deg;--c:var(--pink)"></span>
+            <span class="sprinkle" style="--x:76%;--y:60%;--r:18deg;--c:var(--lilac)"></span>
+            <span class="sprinkle" style="--x:90%;--y:36%;--r:-72deg;--c:var(--mint)"></span>
+          </div>
+          <div class="tier__body">
+            <span class="dot" style="--x:22%;--y:52%"></span>
+            <span class="dot" style="--x:50%;--y:52%"></span>
+            <span class="dot" style="--x:78%;--y:52%"></span>
+          </div>
+        </div>
+
+        <!-- BOTTOM TIER -->
+        <div class="tier tier--bottom">
+          <div class="tier__frosting">
+            <span class="sprinkle" style="--x:10%;--y:36%;--r:34deg;--c:var(--sun)"></span>
+            <span class="sprinkle" style="--x:28%;--y:64%;--r:-20deg;--c:var(--pink)"></span>
+            <span class="sprinkle" style="--x:48%;--y:34%;--r:62deg;--c:var(--mint)"></span>
+            <span class="sprinkle" style="--x:66%;--y:66%;--r:-44deg;--c:var(--lilac)"></span>
+            <span class="sprinkle" style="--x:84%;--y:38%;--r:14deg;--c:var(--sun)"></span>
+            <span class="sprinkle" style="--x:94%;--y:64%;--r:-64deg;--c:var(--pink)"></span>
+          </div>
+          <div class="tier__body">
+            <span class="dot" style="--x:16%;--y:56%"></span>
+            <span class="dot" style="--x:38%;--y:56%"></span>
+            <span class="dot" style="--x:62%;--y:56%"></span>
+            <span class="dot" style="--x:84%;--y:56%"></span>
+          </div>
+        </div>
+
+        <!-- PLATE -->
+        <div class="plate"></div>
+      </div>
+    </div>
+
+    <!-- ---------- COUNTDOWN PILLS ---------- -->
+    <div class="countdown" id="countdown" role="timer">
+      <div class="pill">
+        <span class="pill__num" id="cd-days">00</span>
+        <span class="pill__label">days</span>
+      </div>
+      <div class="pill">
+        <span class="pill__num" id="cd-hours">00</span>
+        <span class="pill__label">hrs</span>
+      </div>
+      <div class="pill">
+        <span class="pill__num" id="cd-mins">00</span>
+        <span class="pill__label">min</span>
+      </div>
+      <div class="pill pill--secs">
+        <span class="pill__num" id="cd-secs">00</span>
+        <span class="pill__label">sec</span>
+      </div>
+    </div>
+
+    <!-- Shown only once the countdown hits zero -->
+    <div class="celebrate" id="celebrate" hidden>
+      <button class="btn btn--primary" id="btn-continue" type="button">Let&rsquo;s go &#127881;</button>
+    </div>
+
+    <p class="footnote">made with &#128155;</p>
+  </section>
+
+  <!-- ==========================================================
+       SCREEN 2 - MIC CANDLE BLOW-OUT   (TODO)
+       Wire up: getUserMedia -> AnalyserNode -> volume threshold ->
+       extinguishFlame(0), then extinguishFlame(1), then showScreen('collage').
+       The .flame elements live on the cake screen; either move the cake
+       markup into a shared component or clone it into this section.
+       ========================================================== -->
+  <section class="screen screen--blow" data-screen="blow">
+    <div class="placeholder">
+      <h2>Make a wish&hellip;</h2>
+      <p>Blow out the candles &#128367;</p>
+      <!-- TODO: mic permission prompt + live level meter -->
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       SCREEN 3 - PHOTO / VIDEO COLLAGE   (TODO)
+       Wire up: a scrollable grid of img/video from a /media folder,
+       tap to open a lightbox. Keep images lazy-loaded.
+       ========================================================== -->
+  <section class="screen screen--collage" data-screen="collage">
+    <div class="placeholder">
+      <h2>Us, mostly</h2>
+      <p>Photos &amp; videos go here &#128248;</p>
+      <!-- TODO: <div class="collage-grid"> ... </div> -->
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       SCREEN 4 - QR LETTER VIEWER   (TODO)
+       Wire up: render a QR that points at the letter, or scan one to
+       unlock the letter text. Letter content can live in a <template>.
+       ========================================================== -->
+  <section class="screen screen--letter" data-screen="letter">
+    <div class="placeholder">
+      <h2>A letter for you</h2>
+      <p>Scan to unlock &#128140;</p>
+      <!-- TODO: QR canvas + letter body -->
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       SCREEN 5 - GAME SCENE   (TODO)
+       Wire up: its own canvas + rAF loop. Pause the loop in
+       showScreen() when navigating away so it does not burn battery.
+       ========================================================== -->
+  <section class="screen screen--game" data-screen="game">
+    <div class="placeholder">
+      <h2>Mini game</h2>
+      <p>Coming soon &#127918;</p>
+      <!-- TODO: <canvas id="game-canvas"></canvas> -->
+    </div>
+  </section>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
