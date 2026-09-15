@@ -262,7 +262,15 @@
        A short, scripted, auto-playing top-down "how we met" cutscene.
        No free-roam, no physics — GAME.play() in script.js walks the
        sprites along preset waypoints and steps through fixed beats.
-       Tapping the stage skips ahead to the next beat.
+       Tapping the stage skips ahead through the narrative beats; the
+       dialogue choice, the whodunit puzzle, and the chest all take a
+       deliberate tap on their own target instead.
+
+       Flow: reachBirthday() (real countdown or ?skip) fires confetti
+       and calls goToGame() — this scene now runs BEFORE the candle
+       blow-out, not after the letter. Solving the puzzle and tapping
+       the chest is what finally reveals the blow-out panel back on the
+       cake screen (see GAME's last step and onBirthdayReached()).
        ========================================================== -->
   <section class="screen screen--game" data-screen="game">
     <div class="game" id="game">
@@ -274,6 +282,12 @@
       <!-- The canteen, built entirely from flat shapes — no image assets. -->
       <div class="stage" id="game-stage">
         <div class="stage__outdoor" aria-hidden="true"></div>
+
+        <!-- "RC Canteen" signpost, so the location reads at a glance -->
+        <div class="signpost" style="--x:10%; --y:86%;" aria-hidden="true">
+          <span class="signpost__board">RC Canteen</span>
+          <span class="signpost__post"></span>
+        </div>
 
         <div class="counter" aria-hidden="true">
           <span class="counter__tray"></span>
@@ -308,16 +322,26 @@
         <span class="mat" style="--x:15%; --y:97%;" aria-hidden="true"></span>
 
         <!-- background life: static, non-interactive -->
-        <div class="npc" style="--x:30%; --y:40%; --c:var(--lilac);" aria-hidden="true"></div>
-        <div class="npc" style="--x:24%; --y:66%;  --c:var(--sun);" aria-hidden="true"></div>
-        <div class="npc" style="--x:44%; --y:12%; --c:var(--mint-d);" aria-hidden="true"></div>
+        <div class="npc" style="--x:30%; --y:40%; --c:var(--earth-npc-1);" aria-hidden="true"></div>
+        <div class="npc" style="--x:24%; --y:66%;  --c:var(--earth-npc-2);" aria-hidden="true"></div>
+        <div class="npc" style="--x:44%; --y:12%; --c:var(--earth-npc-3);" aria-hidden="true"></div>
+
+        <!-- the treasure chest, present from the start but only tappable
+             once the puzzle is solved (see .chest.is-active) -->
+        <div class="chest" id="game-chest" style="--x:90%; --y:92%;">
+          <span class="chest__lid"></span>
+          <span class="chest__latch"></span>
+        </div>
 
         <!-- "her" — hidden until she takes her seat -->
         <div class="sprite sprite--her" id="sprite-her" style="--x:72%; --y:40%;" hidden>
-          <span class="sprite__mark" id="her-mark" hidden>&#10084;</span>
           <div class="sprite__inner">
+            <span class="limb arm arm--l"></span>
+            <span class="limb arm arm--r"></span>
             <div class="sprite__body"></div>
             <div class="sprite__face"><span class="eye eye--l"></span><span class="eye eye--r"></span></div>
+            <span class="limb leg leg--l"></span>
+            <span class="limb leg leg--r"></span>
           </div>
         </div>
 
@@ -325,29 +349,47 @@
         <div class="sprite sprite--me" id="sprite-me" style="--x:15%; --y:97%;">
           <span class="sprite__mark" id="me-mark" hidden>!</span>
           <div class="sprite__inner">
+            <span class="limb arm arm--l"></span>
+            <span class="limb arm arm--r"></span>
             <div class="sprite__body"></div>
             <div class="sprite__face"><span class="eye eye--l"></span><span class="eye eye--r"></span></div>
+            <span class="limb leg leg--l"></span>
+            <span class="limb leg leg--r"></span>
           </div>
-        </div>
-
-        <!-- "request sent" / "request accepted" overlay -->
-        <div class="fx" id="game-fx" hidden>
-          <span class="fx__icon" id="game-fx-icon">&#128153;</span>
-          <p class="fx__text" id="game-fx-text">sent</p>
         </div>
       </div>
 
       <p class="footnote game__hint" id="game-hint">tap to skip ahead</p>
 
-      <!-- dialogue box -->
+      <!-- dialogue box: a plain line, or a line with a pair of choices —
+           GAME.js toggles which is shown per beat -->
       <div class="dialogue" id="game-dialogue" hidden>
         <p class="dialogue__text" id="game-dialogue-text"></p>
-        <span class="dialogue__hint">tap to continue</span>
+        <div class="dialogue__choices" id="game-dialogue-choices" hidden>
+          <button class="btn btn--primary dialogue__choice" type="button">Yes</button>
+          <button class="btn btn--primary dialogue__choice" type="button">Yes</button>
+        </div>
+        <span class="dialogue__hint" id="game-dialogue-hint">tap to continue</span>
       </div>
 
-      <!-- closing caption -->
-      <div class="game__caption" id="game-caption" hidden>
-        <p id="game-caption-text"></p>
+      <!-- the whodunit puzzle: 3 tappable suspects, infinite retries -->
+      <div class="puzzle" id="game-puzzle" hidden>
+        <p class="puzzle__question" id="puzzle-question">Who finished the last samosa?</p>
+        <div class="puzzle__suspects" id="puzzle-suspects">
+          <button class="suspect" type="button" data-suspect="0">
+            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__name"></span>
+          </button>
+          <button class="suspect" type="button" data-suspect="1">
+            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__name"></span>
+          </button>
+          <button class="suspect" type="button" data-suspect="2">
+            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__name"></span>
+          </button>
+        </div>
+        <p class="puzzle__feedback" id="puzzle-feedback">&nbsp;</p>
       </div>
     </div>
   </section>

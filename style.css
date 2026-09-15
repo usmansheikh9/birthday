@@ -1034,9 +1034,15 @@ body::before {
    --x/--y custom properties (percent of the stage box), so the whole
    scene scales as one piece exactly like the --u system scales the
    rest of the site.
+
+   Deliberately warmer/earthier than the site's candy palette — this
+   scene reads as grounded and a little nostalgic, not a party.
    ============================================================ */
 
 .game {
+  --earth-npc-1: #C1784A;
+  --earth-npc-2: #8A9A5B;
+  --earth-npc-3: #B5735F;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1048,7 +1054,7 @@ body::before {
   padding: calc(6 * var(--u)) calc(16 * var(--u));
   border-radius: 999px;
   background: rgba(255, 255, 255, .78);
-  box-shadow: 0 calc(3 * var(--u)) 0 rgba(180, 120, 145, .14);
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 85, 60, .14);
   font-size: clamp(12px, calc(14 * var(--u)), 16px);
   font-weight: 600;
   letter-spacing: .04em;
@@ -1069,17 +1075,47 @@ body::before {
   aspect-ratio: 3 / 4;
   overflow: hidden;
   border-radius: calc(16 * var(--u));
-  background: linear-gradient(180deg, #F6DDB6 0%, #EFCB98 100%);
+  background: linear-gradient(180deg, #E4C79C 0%, #D2AC7C 100%);
   box-shadow:
-    0 calc(2 * var(--u)) calc(3 * var(--u)) rgba(120, 85, 60, .12),
-    0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120, 85, 60, .24);
+    0 calc(2 * var(--u)) calc(3 * var(--u)) rgba(90, 60, 35, .16),
+    0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(90, 60, 35, .28);
 }
 
 .stage__outdoor {
   position: absolute;
   inset: 0 0 0 78%;
-  background: linear-gradient(180deg, #BFE7C9 0%, #A6DCB4 100%);
-  border-left: calc(2 * var(--u)) dashed rgba(120, 85, 60, .22);
+  background: linear-gradient(180deg, #A9BC90 0%, #8FA478 100%);
+  border-left: calc(2 * var(--u)) dashed rgba(90, 60, 35, .22);
+}
+
+/* ---- signpost ---- */
+.signpost {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signpost__board {
+  padding: calc(3 * var(--u)) calc(7 * var(--u));
+  border-radius: calc(3 * var(--u));
+  background: linear-gradient(180deg, #8B5A34 0%, #714526 100%);
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(70, 42, 20, .4);
+  color: #FFF3E2;
+  font-size: clamp(8px, calc(9 * var(--u)), 10.5px);
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.signpost__post {
+  width: calc(3 * var(--u));
+  height: calc(14 * var(--u));
+  background: #6E4527;
 }
 
 /* ---- counter ---- */
@@ -1093,15 +1129,15 @@ body::before {
   align-items: center;
   justify-content: space-evenly;
   border-radius: calc(4 * var(--u));
-  background: linear-gradient(180deg, #C98B5E 0%, #B06F42 100%);
-  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 70, 40, .3);
+  background: linear-gradient(180deg, #A9754C 0%, #8B5A34 100%);
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(70, 42, 20, .34);
 }
 
 .counter__tray {
   width: 14%;
   height: 30%;
   border-radius: calc(2 * var(--u));
-  background: rgba(255, 246, 230, .85);
+  background: rgba(255, 244, 226, .82);
 }
 
 /* ---- tables + chairs ---- */
@@ -1118,8 +1154,8 @@ body::before {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg, #FFF6E7 0%, #F2DCB8 100%);
-  box-shadow: 0 calc(2 * var(--u)) 0 rgba(120, 85, 60, .28);
+  background: linear-gradient(180deg, #EEDCBC 0%, #D9BD91 100%);
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(90, 60, 35, .3);
 }
 
 .chair {
@@ -1127,14 +1163,14 @@ body::before {
   width: 34%;
   height: 34%;
   border-radius: calc(3 * var(--u));
-  background: #C98B5E;
+  background: #9C6B3E;
 }
 .chair--n { top: -22%;  left: 33%; }
 .chair--s { bottom: -22%; left: 33%; }
 .chair--e { right: -22%; top: 33%; }
 .chair--w { left: -22%;  top: 33%; }
 
-.table--outdoor .table__top { background: linear-gradient(180deg, #FFF9EE 0%, #E9DABF 100%); }
+.table--outdoor .table__top { background: linear-gradient(180deg, #F0E4C8 0%, #DBC79E 100%); }
 
 /* ---- trees + entrance mat ---- */
 .tree {
@@ -1145,8 +1181,8 @@ body::before {
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #8FD79E, #5FB876 70%);
-  box-shadow: 0 calc(10 * var(--u)) 0 -calc(6 * var(--u)) #A9764C;
+  background: radial-gradient(circle at 35% 30%, #7C9B68, #55703F 70%);
+  box-shadow: 0 calc(10 * var(--u)) 0 -calc(6 * var(--u)) #7A5636;
 }
 
 .mat {
@@ -1157,7 +1193,7 @@ body::before {
   height: 5%;
   transform: translate(-50%, -50%);
   border-radius: calc(4 * var(--u));
-  background: rgba(120, 85, 60, .18);
+  background: rgba(90, 60, 35, .2);
 }
 
 /* ---- background NPCs: static, decorative only ---- */
@@ -1169,18 +1205,74 @@ body::before {
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: var(--c, var(--mint-d));
+  background: var(--c, var(--earth-npc-1));
   opacity: .82;
-  box-shadow: 0 calc(2 * var(--u)) 0 rgba(120, 85, 60, .2);
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(90, 60, 35, .22);
 }
+
+/* ---- the treasure chest ---- */
+.chest {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  /* a bit larger than it needs to read visually, so the tap target
+     clears a comfortable minimum on real phones */
+  width: 15%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.chest::before {
+  content: "";
+  position: absolute;
+  inset: 30% 0 0;
+  border-radius: calc(2 * var(--u));
+  background: linear-gradient(180deg, #8B5A34 0%, #6E4527 100%);
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(60, 36, 16, .4);
+}
+
+.chest__lid {
+  position: absolute;
+  inset: 0 0 62%;
+  border-radius: calc(2 * var(--u)) calc(2 * var(--u)) 0 0;
+  background: linear-gradient(180deg, #A9754C 0%, #8B5A34 100%);
+  transform-origin: bottom center;
+  transition: transform .4s cubic-bezier(.3, 1.4, .5, 1);
+}
+
+.chest__latch {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  width: 14%;
+  height: 14%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #D9A441;
+  z-index: 1;
+}
+
+/* only tappable once the puzzle is solved */
+.chest.is-active {
+  cursor: pointer;
+  animation: chestPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes chestPulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(217, 164, 65, 0)); transform: translate(-50%, -50%) scale(1); }
+  50%      { filter: drop-shadow(0 0 calc(6 * var(--u)) rgba(217, 164, 65, .7)); transform: translate(-50%, -50%) scale(1.06); }
+}
+
+.chest.is-open .chest__lid { transform: rotateX(-115deg); }
 
 /* ---- sprites: "me" and "her" ---- */
 .sprite {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  width: 11%;
-  aspect-ratio: 1;
+  width: 12.5%;
+  aspect-ratio: .8;
   transform: translate(-50%, -50%);
   z-index: 5;
   transition: left .9s linear, top .9s linear;
@@ -1190,39 +1282,63 @@ body::before {
 
 .sprite__body {
   position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 85, 60, .22);
+  left: 14%;
+  right: 14%;
+  top: 6%;
+  bottom: 34%;
+  border-radius: 46% 46% 38% 38%;
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(90, 60, 35, .24);
 }
 
-.sprite--me  .sprite__body { background: linear-gradient(180deg, #8FCBDE 0%, #5FA8C4 100%); }
-.sprite--her .sprite__body { background: linear-gradient(180deg, #FFB0C6 0%, var(--pink-d) 100%); }
+.sprite--me  .sprite__body { background: linear-gradient(180deg, #D08A50 0%, #A9612F 100%); }
+.sprite--her .sprite__body { background: linear-gradient(180deg, #C06579 0%, #8F3E52 100%); }
 
 .sprite__face {
   position: absolute;
-  inset: 0;
+  left: 14%;
+  right: 14%;
+  top: 6%;
+  height: 40%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 22%;
+  gap: 24%;
 }
 
 .eye {
-  width: 14%;
-  height: 14%;
+  width: 16%;
+  height: 16%;
   border-radius: 999px;
-  background: var(--ink);
-  transform: translateY(-8%);
+  background: rgba(60, 36, 20, .82);
+  transform: translateY(10%);
 }
+
+/* limbs: simple rectangles, not detailed pixel art */
+.limb {
+  position: absolute;
+  border-radius: 40%;
+  transform-origin: top center;
+}
+
+.leg { width: 15%; height: 28%; bottom: 0; }
+.leg--l { left: 27%; background: var(--limb-l, #7A4522); }
+.leg--r { right: 27%; background: var(--limb-r, #7A4522); }
+
+.arm { width: 11%; height: 24%; top: 16%; }
+.arm--l { left: 2%; background: var(--limb-l, #7A4522); }
+.arm--r { right: 2%; background: var(--limb-r, #7A4522); }
+
+.sprite--me  { --limb-l: #7A4522; --limb-r: #7A4522; }
+.sprite--her { --limb-l: #6E2C3B; --limb-r: #6E2C3B; }
 
 .sprite__mark {
   position: absolute;
-  top: -60%;
+  top: -46%;
   left: 50%;
   transform: translateX(-50%);
   font-size: clamp(14px, calc(16 * var(--u)), 19px);
   line-height: 1;
-  color: var(--pink-d);
+  color: #8F3E52;
   animation: markPop .5s cubic-bezier(.3, 1.5, .5, 1) backwards;
 }
 
@@ -1231,14 +1347,18 @@ body::before {
   to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
-/* walking: a small 2-beat bob, cheap stand-in for a walk cycle */
-.sprite.is-walking .sprite__inner { animation: spriteBob .38s ease-in-out infinite; }
-@keyframes spriteBob {
-  0%, 100% { transform: translateY(0) scaleY(1); }
-  50%      { transform: translateY(-6%) scaleY(1.05); }
+/* walking: legs and opposite arms swing through a simple 2-beat cycle */
+.sprite.is-walking .leg--l,
+.sprite.is-walking .arm--r { animation: limbSwing .46s ease-in-out infinite; }
+.sprite.is-walking .leg--r,
+.sprite.is-walking .arm--l { animation: limbSwing .46s ease-in-out infinite reverse; }
+
+@keyframes limbSwing {
+  0%, 100% { transform: rotate(-22deg); }
+  50%      { transform: rotate(22deg); }
 }
 
-/* looking around: eyes shift side to side, "her" table is being scanned */
+/* looking around: eyes shift side to side, the room is being scanned */
 .sprite.is-looking .sprite__face { animation: lookAround 1.3s ease-in-out; }
 @keyframes lookAround {
   0%, 100% { transform: translateX(0); }
@@ -1246,54 +1366,12 @@ body::before {
   75%      { transform: translateX(18%); }
 }
 
-/* happy reaction: request accepted */
-.sprite.is-happy .sprite__inner { animation: spriteHappy .5s ease-in-out 2; }
-@keyframes spriteHappy {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50%      { transform: translateY(-14%) rotate(-6deg); }
-}
-
-/* ---- "sent" / "accepted" overlay ---- */
-.fx {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: calc(6 * var(--u));
-  pointer-events: none;
-  background: rgba(255, 248, 234, .32);
-}
-
-.fx__icon {
-  font-size: clamp(30px, calc(40 * var(--u)), 48px);
-  line-height: 1;
-  animation: fxPop .55s cubic-bezier(.3, 1.5, .5, 1) backwards;
-}
-
-.fx__text {
-  margin: 0;
-  font-size: clamp(14px, calc(17 * var(--u)), 20px);
-  font-weight: 600;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--pink-d);
-  animation: fxPop .55s cubic-bezier(.3, 1.5, .5, 1) .08s backwards;
-}
-
-@keyframes fxPop {
-  from { opacity: 0; transform: scale(.6); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-/* ---- dialogue box ---- */
+/* ---- dialogue box: a line, or a line with two choices ---- */
 .dialogue {
   width: min(100%, calc(340 * var(--u)));
   padding: calc(16 * var(--u)) calc(20 * var(--u));
   border-radius: calc(14 * var(--u));
-  background: rgba(255, 255, 255, .92);
+  background: rgba(255, 252, 245, .94);
   box-shadow: var(--shadow-chunk);
   text-align: center;
   animation: dayPop .3s cubic-bezier(.3, 1.4, .5, 1);
@@ -1311,19 +1389,99 @@ body::before {
   color: var(--ink-soft);
 }
 
-/* ---- closing caption ---- */
-.game__caption {
-  text-align: center;
-  animation: paperIn .8s cubic-bezier(.22, 1, .36, 1);
+.dialogue__choices {
+  display: flex;
+  justify-content: center;
+  gap: calc(12 * var(--u));
+  margin: calc(6 * var(--u)) 0;
 }
 
-.game__caption p {
-  margin: 0;
-  font-family: "Playfair Display", "EB Garamond", Georgia, serif;
-  font-style: italic;
-  font-size: clamp(17px, calc(20 * var(--u)), 23px);
-  color: var(--pink-d);
+.dialogue__choice {
+  padding: calc(9 * var(--u)) calc(26 * var(--u));
+  font-size: clamp(14px, calc(16 * var(--u)), 18px);
+  background: linear-gradient(180deg, #C1784A 0%, #9C5A2E 100%);
+  box-shadow: 0 5px 0 #7A4522, 0 12px 22px rgba(122, 69, 34, .35);
 }
+.dialogue__choice:active { transform: translateY(4px); box-shadow: 0 1px 0 #7A4522, 0 6px 12px rgba(122, 69, 34, .3); }
+
+/* ---- the whodunit puzzle ---- */
+.puzzle {
+  width: min(100%, calc(340 * var(--u)));
+  padding: calc(18 * var(--u)) calc(18 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: rgba(255, 252, 245, .94);
+  box-shadow: var(--shadow-chunk);
+  text-align: center;
+  animation: dayPop .3s cubic-bezier(.3, 1.4, .5, 1);
+}
+
+.puzzle__question {
+  margin: 0 0 calc(12 * var(--u));
+  font-size: clamp(15px, calc(17 * var(--u)), 19px);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.puzzle__suspects {
+  display: flex;
+  justify-content: center;
+  gap: calc(10 * var(--u));
+}
+
+.suspect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--u));
+  padding: calc(6 * var(--u));
+  border: 0;
+  border-radius: calc(10 * var(--u));
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .14s cubic-bezier(.3, 1.4, .5, 1);
+}
+.suspect:active { transform: translateY(2px); }
+
+.suspect__avatar {
+  position: relative;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  border-radius: 999px;
+  background: var(--sc, var(--earth-npc-1));
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(90, 60, 35, .26);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6 * var(--u));
+}
+
+.suspect[data-suspect="0"] .suspect__avatar { --sc: #C1784A; }
+.suspect[data-suspect="1"] .suspect__avatar { --sc: #8A9A5B; }
+.suspect[data-suspect="2"] .suspect__avatar { --sc: #B5566B; }
+
+.suspect__avatar .eye {
+  position: static;
+  width: calc(5 * var(--u));
+  height: calc(5 * var(--u));
+  background: rgba(60, 36, 20, .82);
+}
+
+.suspect__name {
+  font-size: clamp(11px, calc(12 * var(--u)), 14px);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.puzzle__feedback {
+  min-height: calc(40 * var(--u));
+  margin: calc(12 * var(--u)) 0 0;
+  font-size: clamp(13px, calc(14 * var(--u)), 16px);
+  color: var(--ink-soft);
+}
+
+.puzzle__feedback.is-correct { color: #6E7E45; font-weight: 600; }
 
 /* ---------- 8. PLACEHOLDER SCREENS ---------- */
 .placeholder {

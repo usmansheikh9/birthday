@@ -1058,39 +1058,58 @@
      ============================================================ */
 
   var GAME = (function () {
-    var rootEl        = document.getElementById("game");
-    var meEl          = document.getElementById("sprite-me");
-    var herEl         = document.getElementById("sprite-her");
-    var meMarkEl      = document.getElementById("me-mark");
-    var dayEl         = document.getElementById("game-day");
-    var dayNumEl      = document.getElementById("game-day-num");
-    var dialogueEl    = document.getElementById("game-dialogue");
-    var dialogueTxtEl = document.getElementById("game-dialogue-text");
-    var captionEl     = document.getElementById("game-caption");
-    var captionTxtEl  = document.getElementById("game-caption-text");
-    var fxEl          = document.getElementById("game-fx");
-    var fxIconEl      = document.getElementById("game-fx-icon");
-    var fxTextEl      = document.getElementById("game-fx-text");
-    var hintEl        = document.getElementById("game-hint");
+    var rootEl          = document.getElementById("game");
+    var stageEl         = document.getElementById("game-stage");
+    var meEl            = document.getElementById("sprite-me");
+    var herEl           = document.getElementById("sprite-her");
+    var meMarkEl        = document.getElementById("me-mark");
+    var dayEl           = document.getElementById("game-day");
+    var dayNumEl        = document.getElementById("game-day-num");
+    var dialogueEl      = document.getElementById("game-dialogue");
+    var dialogueTxtEl   = document.getElementById("game-dialogue-text");
+    var choicesEl       = document.getElementById("game-dialogue-choices");
+    var choiceBtns      = choicesEl ? choicesEl.querySelectorAll(".dialogue__choice") : [];
+    var dialogueHintEl  = document.getElementById("game-dialogue-hint");
+    var hintEl          = document.getElementById("game-hint");
+    var puzzleEl        = document.getElementById("game-puzzle");
+    var puzzleQEl       = document.getElementById("puzzle-question");
+    var suspectBtns     = document.querySelectorAll(".suspect");
+    var feedbackEl      = document.getElementById("puzzle-feedback");
+    var chestEl         = document.getElementById("game-chest");
 
-    // Edit freely — shown one line at a time, tap (or ~4s) to advance.
-    var DIALOGUE = [
-      "Should I...",
-      "What if she thinks it's weird...",
-      "Just send it."
+    // Edit freely.
+    var GAME_QUESTION = "Wanna play a game?";
+    var PUZZLE_QUESTION = "Who finished the last samosa?";
+    var SUSPECTS = [
+      { name: "Suspect A", clue: "I was at the counter the whole time.", correct: false },
+      { name: "Suspect B", clue: "I don't even like samosas.", correct: false },
+      { name: "Her",       clue: "...okay, it might have been me.",     correct: true  }
     ];
 
-    var LOOP_ENTER  = [{ x: 15, y: 75 }, { x: 28, y: 52 }];
-    var LOOP_EXIT   = [{ x: 15, y: 75 }, { x: 15, y: 97 }];
-    var FINAL_ENTER = [{ x: 15, y: 75 }, { x: 35, y: 55 }, { x: 55, y: 42 }];
-    var BESIDE_HER  = [{ x: 60, y: 42 }];
+    if (puzzleQEl) puzzleQEl.textContent = PUZZLE_QUESTION;
+
+    // Slow, readable legs — this is meant to breathe, not rush.
+    var DAY_BADGE_MS = 900;
+    var LOOK_MS      = 1300;
+    var LOOP_LEG_MS  = 1000;
+    var FINAL_LEG_MS = 950;
+    var APPROACH_LEG_MS = 1400;
+
+    var LOOP_ENTER   = [{ x: 15, y: 78 }, { x: 30, y: 55 }];
+    var LOOP_EXIT    = [{ x: 15, y: 78 }, { x: 15, y: 97 }];
+    var FINAL_ENTER  = [{ x: 15, y: 78 }, { x: 32, y: 58 }, { x: 42, y: 50 }];
+    var APPROACH     = [{ x: 52, y: 48 }, { x: 62, y: 42 }];
+    var TO_CHEST     = [{ x: 78, y: 70 }, { x: 84, y: 86 }];
     var HER_SEAT     = { x: 72, y: 40 };
 
     var started = false;
     var pendingSkip = null; // current beat's resolve(); a tap anywhere calls it
 
     if (rootEl) {
-      rootEl.addEventListener("click", function () {
+      rootEl.addEventListener("click", function (e) {
+        // Deliberate tap targets (buttons, suspects, chest) handle themselves —
+        // this is only the generic "skip the current narrative beat" path.
+        if (e.target.closest(".dialogue__choice, .suspect, .chest")) return;
         if (pendingSkip) pendingSkip();
       });
     }
@@ -1108,6 +1127,22 @@
           resolve();
         }
         pendingSkip = finish;
+      });
+    }
+
+    /** Resolves only when one of the given elements is tapped — no timeout. */
+    function waitForClick(elements) {
+      var list = elements.length === undefined ? [elements] : elements;
+      return new Promise(function (resolve) {
+        function handler() {
+          Array.prototype.forEach.call(list, function (el) {
+            el.removeEventListener("click", handler);
+          });
+          resolve();
+        }
+        Array.prototype.forEach.call(list, function (el) {
+          el.addEventListener("click", handler);
+        });
       });
     }
 
@@ -1130,44 +1165,54 @@
       return p.then(function () { el.classList.remove("is-walking"); });
     }
 
-    function showDialogueLine(text) {
-      dialogueTxtEl.textContent = text;
-      dialogueEl.hidden = false;
-      return beat(4200);
-    }
-
-    function showFx(icon, text, ms) {
-      fxIconEl.textContent = icon;
-      fxTextEl.textContent = text;
-      fxEl.hidden = false;
-      return beat(ms).then(function () { fxEl.hidden = true; });
-    }
-
     /** One "searching for her" cycle: day badge, wander in, look, wander out. */
     function dayLoopSteps(dayNum) {
       return [
         function () {
           dayNumEl.textContent = dayNum;
           dayEl.hidden = false;
-          return beat(380);
+          return beat(DAY_BADGE_MS);
         },
         function () {
           dayEl.hidden = true;
-          return walk(meEl, LOOP_ENTER, 420);
+          return walk(meEl, LOOP_ENTER, LOOP_LEG_MS);
         },
         function () {
           meEl.classList.add("is-looking");
-          return beat(500);
+          return beat(LOOK_MS);
         },
         function () {
           meEl.classList.remove("is-looking");
-          return walk(meEl, LOOP_EXIT, 420);
+          return walk(meEl, LOOP_EXIT, LOOP_LEG_MS);
         }
       ];
     }
 
     function runSequence(steps) {
       return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
+    }
+
+    /** The whodunit beat: infinite retries, resolves only on the right suspect. */
+    function runPuzzle() {
+      return new Promise(function (resolve) {
+        Array.prototype.forEach.call(suspectBtns, function (btn, i) {
+          var suspect = SUSPECTS[i];
+          btn.querySelector(".suspect__name").textContent = suspect.name;
+          btn.disabled = false;
+          function onTap() {
+            if (suspect.correct) {
+              feedbackEl.textContent = suspect.clue + " — that's the one!";
+              feedbackEl.classList.add("is-correct");
+              Array.prototype.forEach.call(suspectBtns, function (b) { b.disabled = true; });
+              setTimeout(resolve, 1300);
+            } else {
+              feedbackEl.textContent = suspect.clue + " — hmm, not them.";
+              feedbackEl.classList.remove("is-correct");
+            }
+          }
+          btn.addEventListener("click", onTap);
+        });
+      });
     }
 
     function buildSteps() {
@@ -1181,45 +1226,60 @@
           herEl.hidden = false;
           dayNumEl.textContent = 4;
           dayEl.hidden = false;
-          return beat(450);
+          return beat(DAY_BADGE_MS);
         },
         function () {
           dayEl.hidden = true;
-          return walk(meEl, FINAL_ENTER, 480);
+          return walk(meEl, FINAL_ENTER, FINAL_LEG_MS);
         },
         function () {
           meEl.classList.add("is-looking");
-          return beat(500);
+          return beat(LOOK_MS);
         },
         function () { meEl.classList.remove("is-looking"); return Promise.resolve(); },
         // notice her
         function () {
           meMarkEl.hidden = false;
-          return beat(650);
+          return beat(700);
         },
-        function () { meMarkEl.hidden = true; return Promise.resolve(); }
-      ]);
-
-      DIALOGUE.forEach(function (line) {
-        steps.push(function () { return showDialogueLine(line); });
-      });
-
-      steps = steps.concat([
-        function () { dialogueEl.hidden = true; hintEl.hidden = true; return showFx("💌", "request sent", 1300); },
+        function () { meMarkEl.hidden = true; return Promise.resolve(); },
+        // a real, slow walk over — this beat gets to breathe
+        function () { return walk(meEl, APPROACH, APPROACH_LEG_MS); },
+        // "wanna play a game?"
         function () {
-          herEl.classList.add("is-happy");
-          confetti.fire({ count: 70, power: 11 });
-          return showFx("✅", "she said yes", 1400);
-        },
-        function () { herEl.classList.remove("is-happy"); return walk(meEl, BESIDE_HER, 650); },
-        function () {
-          captionTxtEl.textContent = "And that's how it started.";
-          captionEl.hidden = false;
-          return beat(2600);
+          hintEl.hidden = true;
+          dialogueTxtEl.textContent = GAME_QUESTION;
+          dialogueHintEl.hidden = true;
+          choicesEl.hidden = false;
+          dialogueEl.hidden = false;
+          return waitForClick(choiceBtns);
         },
         function () {
-          captionTxtEl.textContent = "The End 💛";
-          return beat(600);
+          dialogueEl.hidden = true;
+          choicesEl.hidden = true;
+          feedbackEl.textContent = " ";
+          feedbackEl.classList.remove("is-correct");
+          puzzleEl.hidden = false;
+          return runPuzzle();
+        },
+        function () {
+          puzzleEl.hidden = true;
+          return walk(meEl, TO_CHEST, 850);
+        },
+        function () {
+          chestEl.classList.add("is-active");
+          return waitForClick(chestEl);
+        },
+        function () {
+          chestEl.classList.remove("is-active");
+          chestEl.classList.add("is-open");
+          return beat(500);
+        },
+        function () {
+          // hand off to the blow-out panel, back on the cake screen
+          showScreen("cake");
+          blowout.begin();
+          return Promise.resolve();
         }
       ]);
 
@@ -1255,7 +1315,8 @@
     showScreen("letter");
   }
 
-  /** Called from the letter's "there's more →" button. Last screen. */
+  /** Called once the birthday confetti lands, and again (harmlessly — the
+      game only ever plays once) from the letter's "there's more →" button. */
   function goToGame() {
     dbg.phase("→ game");
     showScreen("game");
@@ -1363,10 +1424,13 @@
   /* ============================================================
      Fires exactly once, the moment the countdown reaches zero (or
      immediately when the page is loaded with ?skip). Hands off to the
-     blow-out phase after a beat, so the confetti burst lands first.
+     "how we met" game after a beat, so the confetti burst lands first.
+     The blow-out panel no longer follows directly from here — GAME's
+     last step reveals it once the chest at the end of the game is
+     tapped (see the GAME module above).
      ============================================================ */
   function onBirthdayReached() {
-    setTimeout(function () { blowout.begin(); }, 1500);
+    setTimeout(function () { goToGame(); }, 1500);
   }
 
   // Mobile browsers throttle timers in background tabs, so re-sync the
