@@ -35,9 +35,16 @@
 <!-- Confetti draws here. Fixed + pointer-events:none so it never blocks taps. -->
 <canvas id="confetti-canvas" aria-hidden="true"></canvas>
 
+<!-- The confetti celebration sound. A plain <audio> element rather than
+     a synthesized Web Audio tone - simpler, and far more reliably
+     unlocked by a tap across real phones. See celebrationAudio in
+     script.js, which primes it on the zero-gate tap and plays it
+     alongside confetti.celebrate(). -->
+<audio id="celebration-audio" src="assets/audio/confetti.wav" preload="auto" playsinline aria-hidden="true"></audio>
+
 <!-- ============================================================
      ZERO-STATE TAP GATE
-     Web Audio needs a real user gesture before it will make sound, and a
+     A real user gesture is needed before audio will reliably play, and a
      cold load straight into the zero-state (opening the link any time
      after TARGET_MS) has had none yet. This stands in for that gesture -
      shown instead of the countdown, never alongside it - before the

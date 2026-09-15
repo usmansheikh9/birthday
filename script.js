@@ -26,7 +26,7 @@
   // The exact instant we count down to, pinned to Karachi time (UTC+5).
   // The "+05:00" offset is part of the string, so this resolves to the same
   // absolute moment no matter what timezone the phone is set to.
-  var TARGET_ISO = "2026-09-15T22:40:00+05:00";
+  var TARGET_ISO = "2026-09-16T00:00:00+05:00";
   var TARGET_MS = new Date(TARGET_ISO).getTime();
 
   /* The collage slideshow, in story order. Add or reorder freely — the
@@ -149,51 +149,86 @@
   }
 
   /* ============================================================
-     2b. AUDIO UNLOCK
-     Web Audio refuses to make sound until a real user gesture has
-     unlocked it. The zero-state confetti can fire with no gesture behind
-     it at all (the countdown reaching zero live with nothing tapped, or
-     a cold load straight into an already-past target) — this is the one
-     shared AudioContext the whole page reuses, plus a passive listener
-     that primes it off the very first tap/key anywhere, so any gesture
-     that happens to land before the confetti fires carries through. The
-     explicit "tap to begin" gate (see boot) covers the case where none
-     does.
+     2b. CELEBRATION AUDIO
+     A synthesized Web Audio fanfare turned out unreliable on real phones
+     even with the AudioContext reporting "running" — the context can be
+     technically unlocked while the actual note-scheduling path still
+     produces nothing audible. A plain <audio> element playing a real
+     file is the far better-trodden path (this is exactly how every
+     other site's click-to-play sound works), so that is what this wraps.
+
+     debugInfo() feeds the ?debug on-screen readout (never console.log —
+     phones make devtools impractical) with exactly what happened: the
+     element's readyState (did the file even load), whether play() was
+     called, and whatever error came back if it was rejected.
      ============================================================ */
 
-  var audioUnlock = (function () {
-    var Ctx = window.AudioContext || window.webkitAudioContext;
-    var ctx = null;
+  var celebrationAudio = (function () {
+    var el = document.getElementById("celebration-audio");
     var primed = false;
+    var playCalled = false;
+    var lastError = null;
 
-    /** Get (creating on first call) the shared context. Never closed —
-        reused for every celebration sound the page ever plays. */
-    function context() {
-      if (!Ctx) return null;
-      if (!ctx) ctx = new Ctx();
-      return ctx;
+    function noteError(err) {
+      lastError = (err && (err.name || err.message)) || String(err);
     }
 
-    /** Call from inside an actual user-gesture handler. Idempotent. */
-    function unlock() {
-      var c = context();
-      if (c && c.state === "suspended" && c.resume) {
-        c.resume().catch(function () {});
-      }
-      return c;
-    }
-
+    /** Call from inside a real user-gesture handler (a tap/click/key).
+        Plays a beat then immediately rewinds and pauses — the standard
+        mobile trick for getting a later, un-gestured play() to actually
+        produce sound, since some browsers only fully open the audio
+        route the first time play() resolves inside a gesture. Muted for
+        this priming play so she never hears a stray blip from it. */
     function prime() {
-      if (primed) return;
+      if (primed || !el) return;
       primed = true;
-      unlock();
-      document.removeEventListener("pointerdown", prime);
-      document.removeEventListener("keydown", prime);
+      el.muted = true;
+      var reset = function (err) {
+        if (err) noteError(err);
+        el.pause();
+        el.currentTime = 0;
+        el.muted = false;
+      };
+      var p = el.play();
+      if (p && p.then) {
+        p.then(reset, reset);
+      } else {
+        reset();
+      }
     }
-    document.addEventListener("pointerdown", prime, { passive: true });
-    document.addEventListener("keydown", prime, { passive: true });
 
-    return { context: context, unlock: unlock };
+    /** The real attempt, timed to land with the confetti burst. */
+    function play() {
+      playCalled = true;
+      lastError = null;
+      if (!el) {
+        lastError = "no <audio> element found";
+        return;
+      }
+      el.currentTime = 0;
+      var p = el.play();
+      if (p && p.catch) p.catch(noteError);
+    }
+
+    function debugInfo() {
+      return {
+        primed: primed,
+        ready: el ? el.readyState : "no-el",
+        played: playCalled,
+        paused: el ? el.paused : "n/a",
+        error: lastError || "none",
+      };
+    }
+
+    var primer = function () {
+      prime();
+      document.removeEventListener("pointerdown", primer);
+      document.removeEventListener("keydown", primer);
+    };
+    document.addEventListener("pointerdown", primer, { passive: true });
+    document.addEventListener("keydown", primer, { passive: true });
+
+    return { prime: prime, play: play, isPrimed: function () { return primed; }, debugInfo: debugInfo };
   })();
 
   /* ============================================================
@@ -324,48 +359,6 @@
       return { left: r.left, width: r.width };
     }
 
-    /* A short celebratory sound — synthesized with the Web Audio API rather
-       than shipping an audio file, so there is nothing to download and
-       nothing that can 404. A quick four-note fanfare (like a party horn).
-       Runs on the shared context from audioUnlock, so whatever gesture
-       already primed it (the tap gate, or an earlier tap anywhere on the
-       page) carries straight through; if it is still suspended here, one
-       last resume is attempted and, if the browser still refuses it, the
-       notes are skipped rather than erroring. */
-    function playCelebrationSound() {
-      try {
-        var actx = audioUnlock.context();
-        if (!actx) return;
-
-        var begin = function () {
-          var now = actx.currentTime;
-          var notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
-          notes.forEach(function (freq, i) {
-            var t = now + i * 0.09;
-            var osc = actx.createOscillator();
-            var gain = actx.createGain();
-            osc.type = "triangle";
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.25, t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-            osc.connect(gain);
-            gain.connect(actx.destination);
-            osc.start(t);
-            osc.stop(t + 0.3);
-          });
-        };
-
-        if (actx.state === "suspended" && actx.resume) {
-          actx.resume().then(begin, function () {});
-        } else {
-          begin();
-        }
-      } catch (err) {
-        // Web Audio unavailable or blocked — celebrate silently.
-      }
-    }
-
     return {
       /**
        * Fire a burst.
@@ -391,7 +384,17 @@
       /** The full celebration: four staggered bursts across the column,
           plus the sound effect fired alongside the first burst. */
       celebrate: function () {
-        playCelebrationSound();
+        celebrationAudio.play();
+        dbg.set(celebrationAudio.debugInfo());
+        dbg.flush();
+        // play()'s promise settles asynchronously — re-read once it has,
+        // so a rejection (autoplay block, decode error, etc.) actually
+        // shows up in the readout instead of the optimistic first snapshot.
+        setTimeout(function () {
+          dbg.set(celebrationAudio.debugInfo());
+          dbg.flush();
+        }, 400);
+
         var col = column(),
           h = window.innerHeight;
         var at = function (f) {
@@ -1699,33 +1702,25 @@
     onBirthdayReached();
   }
 
-  /** True once the shared AudioContext has actually been unlocked by a
-      real gesture — the passive first-tap primer in audioUnlock (see
-      above), or a previous tap on the gate below. */
-  function audioIsUnlocked() {
-    var ctx = audioUnlock.context();
-    return !!ctx && ctx.state === "running";
-  }
-
   /** The single entry point into the zero-state, however it is reached —
       the live countdown ticking down to it, or a cold load already past
       the target (?skip has its own path in boot; see there). Runs once.
 
-      Web Audio needs a real user gesture before it will make sound, and
+      Audio needs a real user gesture before it will reliably play, and
       neither path is guaranteed to have had one: the cake screen has no
       interactive element at all before this point. So this gates on one
-      tap ONLY when audio genuinely has not been unlocked yet by anything
-      else — if she has already touched the page (the passive primer
-      catching a scroll, a stray tap, an earlier visit to this gate), the
-      zero-state proceeds immediately and the live countdown is never
-      interrupted for a redundant tap. */
+      tap ONLY when audio genuinely has not been primed yet by anything
+      else — if she has already touched the page (the passive primer in
+      celebrationAudio catching a scroll, a stray tap, an earlier visit
+      to this gate), the zero-state proceeds immediately and the live
+      countdown is never interrupted for a redundant tap. */
   function enterZeroState() {
     if (zeroStateEntered) return;
     zeroStateEntered = true;
     stopTimer();
     hideCountdownUI();
 
-    if (audioIsUnlocked() || !el.zeroGate || !el.zeroGateBtn) {
+    if (celebrationAudio.isPrimed() || !el.zeroGate || !el.zeroGateBtn) {
       setTimeout(reachBirthday, 700);
       return;
     }
@@ -1734,7 +1729,7 @@
     el.zeroGate.hidden = false;
     el.zeroGateBtn.addEventListener("click", function onTap() {
       el.zeroGateBtn.removeEventListener("click", onTap);
-      audioUnlock.unlock();
+      celebrationAudio.prime();
       el.zeroGate.hidden = true;
       dbg.phase("tapped -> zero");
       setTimeout(reachBirthday, 700);
@@ -1785,17 +1780,14 @@
   // applies immediately and the ticking countdown never renders at all.
   var alreadyPast = Date.now() >= TARGET_MS;
 
-  if (params.has("skip")) {
-    // ?skip — test the zero state without waiting for the real date. A
-    // developer typing this into the URL bar is gesture enough on its
-    // own, so this bypasses the tap gate outright (see enterZeroState).
-    dbg.phase("?skip -> zero");
-    zeroStateEntered = true;
-    stopTimer();
-    hideCountdownUI();
-    setTimeout(reachBirthday, 700);
-  } else if (alreadyPast) {
-    dbg.phase("already past target");
+  if (params.has("skip") || alreadyPast) {
+    // ?skip (test the zero state without waiting for the real date) goes
+    // through the exact same gate as a cold load past the target —
+    // typing a URL is not a user gesture either, so it needs the tap
+    // just as much (confirmed the hard way: without this, testing via
+    // ?skip alone reproduced the very "no sound" bug being tracked down
+    // here, just for the wrong reason — no gesture had happened at all).
+    dbg.phase(params.has("skip") ? "?skip -> zero" : "already past target");
     enterZeroState();
   } else {
     dbg.phase("counting down");
@@ -1823,7 +1815,7 @@
     goToLetter: goToLetter,
     goToGame: goToGame,
     letter: LETTER,
-    audioUnlock: audioUnlock, // BDay.audioUnlock.context().state, for checking from the console
+    celebrationAudio: celebrationAudio, // BDay.celebrationAudio.debugInfo(), for checking from the console
     game: GAME,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO },
   };
