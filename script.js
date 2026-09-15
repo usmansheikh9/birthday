@@ -276,6 +276,54 @@
       return { left: r.left, width: r.width };
     }
 
+    /* A short celebratory sound — synthesized with the Web Audio API rather
+       than shipping an audio file, so there is nothing to download and
+       nothing that can 404. A quick four-note fanfare (like a party horn).
+       Autoplay policies can block this outright with no interaction on the
+       page (e.g. she opens the link after the target has already passed),
+       so every failure mode here is swallowed — a blocked sound is silent,
+       never an error. */
+    function playCelebrationSound() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        var actx = new Ctx();
+
+        var begin = function () {
+          var now = actx.currentTime;
+          var notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+          notes.forEach(function (freq, i) {
+            var t = now + i * 0.09;
+            var osc = actx.createOscillator();
+            var gain = actx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.25, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start(t);
+            osc.stop(t + 0.3);
+          });
+          setTimeout(
+            function () {
+              if (actx.close) actx.close();
+            },
+            notes.length * 90 + 400,
+          );
+        };
+
+        if (actx.state === "suspended" && actx.resume) {
+          actx.resume().then(begin, function () {});
+        } else {
+          begin();
+        }
+      } catch (err) {
+        // Web Audio unavailable or blocked — celebrate silently.
+      }
+    }
+
     return {
       /**
        * Fire a burst.
@@ -298,8 +346,10 @@
         start();
       },
 
-      /** The full celebration: four staggered bursts across the column. */
+      /** The full celebration: four staggered bursts across the column,
+          plus the sound effect fired alongside the first burst. */
       celebrate: function () {
+        playCelebrationSound();
         var col = column(),
           h = window.innerHeight;
         var at = function (f) {
@@ -1638,10 +1688,21 @@
 
   showScreen(forcedScreen && screens[forcedScreen] ? forcedScreen : "cake");
 
-  dbg.phase(params.has("skip") ? "?skip -> zero" : "counting down");
+  // Past the target the moment the page loads — not just the instant the
+  // live countdown ticks to zero, but any time after (she opens the link
+  // hours or days late, say). Treat this exactly like ?skip: the zero-state
+  // applies immediately and the ticking countdown never renders at all.
+  var alreadyPast = Date.now() >= TARGET_MS;
 
-  if (params.has("skip")) {
-    // ?skip — test the zero state without waiting for the real date.
+  dbg.phase(
+    params.has("skip")
+      ? "?skip -> zero"
+      : alreadyPast
+        ? "already past target -> zero"
+        : "counting down",
+  );
+
+  if (params.has("skip") || alreadyPast) {
     // Apply the zero-state look synchronously, before the first paint, so
     // the ticking countdown never renders even for a frame — then still
     // wait a beat before actually firing confetti, so the cake finishes
