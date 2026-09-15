@@ -21,13 +21,13 @@
 
   // [HER NAME] — swap this one string and it updates everywhere.
   var HER_NAME = "Alishba";
-  var HER_AGE  = 22;
+  var HER_AGE = 22;
 
   // The exact instant we count down to, pinned to Karachi time (UTC+5).
   // The "+05:00" offset is part of the string, so this resolves to the same
   // absolute moment no matter what timezone the phone is set to.
- var TARGET_ISO = "2026-09-15T21:04:00+05:00";
-  var TARGET_MS  = new Date(TARGET_ISO).getTime();
+  var TARGET_ISO = "2026-09-16T00:00:00+05:00";
+  var TARGET_MS = new Date(TARGET_ISO).getTime();
 
   /* The collage slideshow, in story order. Add or reorder freely — the
      screen builds itself from this list, so dropping in "10.jpg" means
@@ -41,7 +41,7 @@
     "assets/photos/06.jpg",
     "assets/photos/07.jpg",
     "assets/photos/08.jpg",
-    "assets/photos/09.jpg"
+    "assets/photos/09.jpg",
   ];
 
   // How long each photo holds, in ms. The Ken Burns and dot-fill timings
@@ -97,7 +97,7 @@
         rows = o;
         dirty = true;
       },
-      flush: paint
+      flush: paint,
     };
   })();
 
@@ -112,7 +112,9 @@
 
   Array.prototype.forEach.call(
     document.querySelectorAll("#app .screen"),
-    function (el) { screens[el.dataset.screen] = el; }
+    function (el) {
+      screens[el.dataset.screen] = el;
+    },
   );
 
   /**
@@ -142,7 +144,7 @@
     //   if (name === "blow")  Mic.listen();  else Mic.stop();
 
     document.dispatchEvent(
-      new CustomEvent("screenchange", { detail: { screen: name } })
+      new CustomEvent("screenchange", { detail: { screen: name } }),
     );
   }
 
@@ -157,12 +159,20 @@
     var rafId = null;
     var lastTime = 0;
 
-    var COLORS = ["#FF8FB1", "#FF5E8A", "#FFC2A0", "#FFD166", "#A8E6CF", "#C9B6F5", "#FFFFFF"];
+    var COLORS = [
+      "#FF8FB1",
+      "#FF5E8A",
+      "#FFC2A0",
+      "#FFD166",
+      "#A8E6CF",
+      "#C9B6F5",
+      "#FFFFFF",
+    ];
 
     function resize() {
       // Cap DPR at 2 — a 3x buffer on a 1440p phone costs a lot for confetti.
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width  = Math.floor(window.innerWidth  * dpr);
+      canvas.width = Math.floor(window.innerWidth * dpr);
       canvas.height = Math.floor(window.innerHeight * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
@@ -185,7 +195,7 @@
           color: COLORS[(Math.random() * COLORS.length) | 0],
           round: Math.random() < 0.3,
           life: 0,
-          ttl: 2600 + Math.random() * 1800
+          ttl: 2600 + Math.random() * 1800,
         });
       }
     }
@@ -203,10 +213,10 @@
         var p = particles[i];
         p.life += dt;
 
-        p.vy += 0.16 * step;   // gravity
-        p.vx *= 0.995;         // drag
-        p.x  += p.vx * step;
-        p.y  += p.vy * step;
+        p.vy += 0.16 * step; // gravity
+        p.vx *= 0.995; // drag
+        p.x += p.vx * step;
+        p.y += p.vy * step;
         p.rot += p.vrot * step;
 
         // fade out over the last 600ms of life
@@ -229,7 +239,12 @@
           ctx.fill();
         } else {
           // squash horizontally as it spins, so it reads as a paper flake
-          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.rot * 0.7)));
+          ctx.fillRect(
+            -p.w / 2,
+            -p.h / 2,
+            p.w,
+            p.h * Math.abs(Math.cos(p.rot * 0.7)),
+          );
         }
         ctx.restore();
       }
@@ -272,26 +287,36 @@
        */
       fire: function (opts) {
         opts = opts || {};
-        var col = column(), h = window.innerHeight;
+        var col = column(),
+          h = window.innerHeight;
         spawn(
           opts.x != null ? opts.x : col.left + col.width / 2,
           opts.y != null ? opts.y : h * 0.45,
           opts.count || 90,
-          opts.power || 13
+          opts.power || 13,
         );
         start();
       },
 
       /** The full celebration: four staggered bursts across the column. */
       celebrate: function () {
-        var col = column(), h = window.innerHeight;
-        var at = function (f) { return col.left + col.width * f; };
+        var col = column(),
+          h = window.innerHeight;
+        var at = function (f) {
+          return col.left + col.width * f;
+        };
         var self = this;
-        this.fire({ x: at(0.5),  y: h * 0.42, count: 110, power: 15 });
-        setTimeout(function () { self.fire({ x: at(0.15), y: h * 0.55, count: 60, power: 12 }); }, 180);
-        setTimeout(function () { self.fire({ x: at(0.85), y: h * 0.55, count: 60, power: 12 }); }, 340);
-        setTimeout(function () { self.fire({ x: at(0.5),  y: h * 0.30, count: 70, power: 14 }); }, 620);
-      }
+        this.fire({ x: at(0.5), y: h * 0.42, count: 110, power: 15 });
+        setTimeout(function () {
+          self.fire({ x: at(0.15), y: h * 0.55, count: 60, power: 12 });
+        }, 180);
+        setTimeout(function () {
+          self.fire({ x: at(0.85), y: h * 0.55, count: 60, power: 12 });
+        }, 340);
+        setTimeout(function () {
+          self.fire({ x: at(0.5), y: h * 0.3, count: 70, power: 14 });
+        }, 620);
+      },
     };
   })();
 
@@ -312,7 +337,12 @@
   /** Extinguish them all, optionally staggered by `stagger` ms. */
   function extinguishAll(stagger) {
     Array.prototype.forEach.call(flames, function (flame, i) {
-      setTimeout(function () { flame.classList.add("is-out"); }, i * (stagger || 0));
+      setTimeout(
+        function () {
+          flame.classList.add("is-out");
+        },
+        i * (stagger || 0),
+      );
     });
   }
 
@@ -347,7 +377,6 @@
      ============================================================ */
 
   var blowout = (function () {
-
     /* Tuned to be forgiving without firing on room noise. Exposed on
        window.BDay.blowTuning so these can be adjusted live on a phone. */
     /* Re-tuned after real-hardware testing, where blowing failed to trigger
@@ -367,18 +396,18 @@
        Everything here is live-tunable: BDay.blowTuning.MIN_LEVEL = 10 etc.
        Set FLATNESS_MIN to 0 to disable the speech veto entirely. */
     var TUNING = {
-      LOW_HZ:      [40, 500],    // the "blow" band
-      MID_HZ:      [1200, 4000], // the "speech" band we compare against
-      FLAT_HZ:     [80, 4500],   // band the flatness measure runs over
-      WARMUP_MS:    350,         // ignore this much at the start — Android mics
-                                 // emit silence/ramp while the stream spins up,
-                                 // and calibrating on that sets the floor far
-                                 // too low, which makes everything "loud"
-      CALIBRATE_MS: 700,         // how long we listen to the room first
-      FLOOR_ADAPT:  0.02,        // how fast the floor keeps tracking the room
-      FLOOR_MARGIN: 14,          // low band must beat the room by this (0-255)
-      MIN_LEVEL:    18,          // absolute floor, for very quiet rooms
-      RATIO_MIN:    1.15,        // low/mid ratio required (loose now)
+      LOW_HZ: [40, 500], // the "blow" band
+      MID_HZ: [1200, 4000], // the "speech" band we compare against
+      FLAT_HZ: [80, 4500], // band the flatness measure runs over
+      WARMUP_MS: 350, // ignore this much at the start — Android mics
+      // emit silence/ramp while the stream spins up,
+      // and calibrating on that sets the floor far
+      // too low, which makes everything "loud"
+      CALIBRATE_MS: 700, // how long we listen to the room first
+      FLOOR_ADAPT: 0.02, // how fast the floor keeps tracking the room
+      FLOOR_MARGIN: 14, // low band must beat the room by this (0-255)
+      MIN_LEVEL: 18, // absolute floor, for very quiet rooms
+      RATIO_MIN: 1.15, // low/mid ratio required (loose now)
       /* Spectral-flatness speech veto. DISABLED BY DEFAULT (0).
          The idea is sound — a voice is harmonic and spiky, a breath is
          noise and flat — but measured over a wide band it also punishes a
@@ -389,35 +418,52 @@
          if talking turns out to trigger things on your phone you can watch
          the real values and switch it on:  BDay.blowTuning.FLATNESS_MIN = 0.3 */
       FLATNESS_MIN: 0,
-      ATTACK_MS:    120,         // must be blowing this long before it counts
-      CHARGE_MS:    420,         // sustained blow needed to finish the job
-      DECAY_MS:     900,         // how fast the charge bleeds back down
-      FIRST_AT:     0.45,        // charge at which the first candle goes out
-      FALLBACK_MS:  8000,        // (tap button is shown immediately now; this
-                                 // just re-states the offer in the copy)
-      PATIENCE_MS: 14000
+      ATTACK_MS: 120, // must be blowing this long before it counts
+      CHARGE_MS: 420, // sustained blow needed to finish the job
+      DECAY_MS: 900, // how fast the charge bleeds back down
+      FIRST_AT: 0.45, // charge at which the first candle goes out
+      FALLBACK_MS: 8000, // (tap button is shown immediately now; this
+      // just re-states the offer in the copy)
+      PATIENCE_MS: 14000,
     };
 
     var ui = {};
-    var started = false, finished = false, listening = false;
-    var audioCtx = null, analyser = null, micStream = null, freqData = null;
-    var rafId = null, lastFrame = 0;
-    var noiseFloor = 0, calibSum = 0, calibCount = 0, calibDone = false, calibStart = 0;
-    var charge = 0, smoothLevel = 0, outCount = 0, blowRun = 0;
-    var fallbackTimer = null, patienceTimer = null, lastDbg = 0;
+    var started = false,
+      finished = false,
+      listening = false;
+    var audioCtx = null,
+      analyser = null,
+      micStream = null,
+      freqData = null;
+    var rafId = null,
+      lastFrame = 0;
+    var noiseFloor = 0,
+      calibSum = 0,
+      calibCount = 0,
+      calibDone = false,
+      calibStart = 0;
+    var charge = 0,
+      smoothLevel = 0,
+      outCount = 0,
+      blowRun = 0;
+    var fallbackTimer = null,
+      patienceTimer = null,
+      lastDbg = 0;
 
     var cakeEl = document.getElementById("cake");
     var candlesEl = document.querySelector(".candles");
 
-    function $(id) { return document.getElementById(id); }
+    function $(id) {
+      return document.getElementById(id);
+    }
 
     function cacheUi() {
-      ui.panel  = $("blow");
-      ui.title  = $("blow-title");
-      ui.note   = $("blow-note");
-      ui.hint   = $("blow-hint");
-      ui.meter  = $("blow-meter");
-      ui.fill   = $("blow-fill");
+      ui.panel = $("blow");
+      ui.title = $("blow-title");
+      ui.note = $("blow-note");
+      ui.hint = $("blow-hint");
+      ui.meter = $("blow-meter");
+      ui.fill = $("blow-fill");
       ui.micBtn = $("btn-mic");
       ui.tapBtn = $("btn-tap");
     }
@@ -442,7 +488,10 @@
         candlesEl.setAttribute("aria-label", "Blow out the candles");
         candlesEl.addEventListener("click", manual);
         candlesEl.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); manual(); }
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            manual();
+          }
         });
       }
 
@@ -464,8 +513,11 @@
 
       // No mic API at all (old browser, or opened over plain file://):
       // skip straight to the fallback rather than offering a dead button.
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia ||
-          !(window.AudioContext || window.webkitAudioContext)) {
+      if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia ||
+        !(window.AudioContext || window.webkitAudioContext)
+      ) {
         ui.micBtn.hidden = true;
         ui.note.textContent = "Tap the candles to blow them out.";
         revealFallback();
@@ -479,16 +531,19 @@
       ui.note.textContent = "Allow the mic when your phone asks…";
       dbg.phase("requesting mic");
 
-      navigator.mediaDevices.getUserMedia({
-        audio: {
-          // These would all fight us: AGC rides the level, noise
-          // suppression treats a blow as noise and removes it, and the
-          // high-pass in echo cancellation eats the low end we look for.
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      }).then(onMicReady).catch(onMicFail);
+      navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            // These would all fight us: AGC rides the level, noise
+            // suppression treats a blow as noise and removes it, and the
+            // high-pass in echo cancellation eats the low end we look for.
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        })
+        .then(onMicReady)
+        .catch(onMicFail);
     }
 
     function onMicReady(stream) {
@@ -541,8 +596,12 @@
       var binHz = audioCtx.sampleRate / analyser.fftSize;
       var from = Math.max(1, Math.floor(fromHz / binHz)); // bin 0 is DC, skip it
       var to = Math.min(freqData.length - 1, Math.ceil(toHz / binHz));
-      var sum = 0, n = 0;
-      for (var i = from; i <= to; i++) { sum += freqData[i]; n++; }
+      var sum = 0,
+        n = 0;
+      for (var i = from; i <= to; i++) {
+        sum += freqData[i];
+        n++;
+      }
       return n ? sum / n : 0;
     }
 
@@ -561,7 +620,9 @@
       // band of values. So map each bin back to linear first.
       var minDb = analyser.minDecibels;
       var span = analyser.maxDecibels - minDb;
-      var logSum = 0, sum = 0, n = 0;
+      var logSum = 0,
+        sum = 0,
+        n = 0;
       for (var i = from; i <= to; i++) {
         var db = minDb + (freqData[i] / 255) * span;
         var lin = Math.pow(10, db / 20) + 1e-12;
@@ -579,7 +640,11 @@
       if (!listening || finished) return;
       rafId = requestAnimationFrame(loop);
 
-      if (!lastFrame) { lastFrame = now; calibStart = now; return; }
+      if (!lastFrame) {
+        lastFrame = now;
+        calibStart = now;
+        return;
+      }
       var dt = Math.min(now - lastFrame, 100);
       lastFrame = now;
 
@@ -592,7 +657,8 @@
 
       // Phase 1: learn what this room sounds like when she is not blowing.
       if (!calibDone) {
-        calibSum += low; calibCount++;
+        calibSum += low;
+        calibCount++;
         if (now - calibStart >= TUNING.WARMUP_MS + TUNING.CALIBRATE_MS) {
           noiseFloor = calibCount ? calibSum / calibCount : 0;
           calibDone = true;
@@ -603,7 +669,10 @@
       }
 
       // Phase 2: is this a blow?
-      var threshold = Math.max(noiseFloor + TUNING.FLOOR_MARGIN, TUNING.MIN_LEVEL);
+      var threshold = Math.max(
+        noiseFloor + TUNING.FLOOR_MARGIN,
+        TUNING.MIN_LEVEL,
+      );
       var ratio = low / (mid + 1);
       var flat = flatness(TUNING.FLAT_HZ[0], TUNING.FLAT_HZ[1]);
 
@@ -634,9 +703,7 @@
       blowRun = isBlowing ? blowRun + dt : 0;
       var sustained = blowRun >= TUNING.ATTACK_MS;
 
-      charge += sustained
-        ? dt / TUNING.CHARGE_MS
-        : -dt / TUNING.DECAY_MS;
+      charge += sustained ? dt / TUNING.CHARGE_MS : -dt / TUNING.DECAY_MS;
       charge = Math.max(0, Math.min(1, charge));
 
       setBlow(Math.max(smoothLevel, charge * 0.55));
@@ -646,20 +713,23 @@
       if (dbg.enabled && now - lastDbg > 110) {
         lastDbg = now;
         dbg.set({
-          low:    low.toFixed(0) + (loudEnough ? " ok" : " LOW"),
-          mid:    mid.toFixed(0),
-          ratio:  ratio.toFixed(2) + (lowLeaning ? " ok" : " LOW"),
-          flat:   flat.toFixed(2) + (notAVoice ? " ok" : " VOICE"),
-          floor:  noiseFloor.toFixed(0),
+          low: low.toFixed(0) + (loudEnough ? " ok" : " LOW"),
+          mid: mid.toFixed(0),
+          ratio: ratio.toFixed(2) + (lowLeaning ? " ok" : " LOW"),
+          flat: flat.toFixed(2) + (notAVoice ? " ok" : " VOICE"),
+          floor: noiseFloor.toFixed(0),
           thresh: threshold.toFixed(0),
           charge: (charge * 100).toFixed(0) + "%",
-          blow:   isBlowing ? "YES" : "no"
+          blow: isBlowing ? "YES" : "no",
         });
         dbg.flush();
       }
 
       if (charge >= TUNING.FIRST_AT && outCount === 0) putOutNext();
-      if (charge >= 1) { putOutNext(); finish(); }
+      if (charge >= 1) {
+        putOutNext();
+        finish();
+      }
     }
 
     /** Writes --blow on the cake; CSS does the rest. */
@@ -681,7 +751,9 @@
       if (!candle) return;
       setTimeout(function () {
         candle.classList.add("is-smoking");
-        setTimeout(function () { candle.classList.remove("is-smoking"); }, 1900);
+        setTimeout(function () {
+          candle.classList.remove("is-smoking");
+        }, 1900);
       }, 140);
     }
 
@@ -741,12 +813,20 @@
 
     function stopMic() {
       listening = false;
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       if (micStream) {
-        micStream.getTracks().forEach(function (t) { t.stop(); });
+        micStream.getTracks().forEach(function (t) {
+          t.stop();
+        });
         micStream = null;
       }
-      if (audioCtx && audioCtx.close) { audioCtx.close(); audioCtx = null; }
+      if (audioCtx && audioCtx.close) {
+        audioCtx.close();
+        audioCtx = null;
+      }
     }
 
     return {
@@ -756,19 +836,24 @@
       tuning: TUNING,
       /** Live read of the detector, for tuning on a real phone. */
       debug: function () {
-        if (!listening || !calibDone) return { listening: listening, calibrated: calibDone };
+        if (!listening || !calibDone)
+          return { listening: listening, calibrated: calibDone };
         analyser.getByteFrequencyData(freqData);
         var low = bandAverage(TUNING.LOW_HZ[0], TUNING.LOW_HZ[1]);
         var mid = bandAverage(TUNING.MID_HZ[0], TUNING.MID_HZ[1]);
         return {
-          low: +low.toFixed(1), mid: +mid.toFixed(1),
+          low: +low.toFixed(1),
+          mid: +mid.toFixed(1),
           ratio: +(low / (mid + 1)).toFixed(2),
           flatness: +flatness(TUNING.FLAT_HZ[0], TUNING.FLAT_HZ[1]).toFixed(3),
           noiseFloor: +noiseFloor.toFixed(1),
-          threshold: +Math.max(noiseFloor + TUNING.FLOOR_MARGIN, TUNING.MIN_LEVEL).toFixed(1),
-          charge: +charge.toFixed(2)
+          threshold: +Math.max(
+            noiseFloor + TUNING.FLOOR_MARGIN,
+            TUNING.MIN_LEVEL,
+          ).toFixed(1),
+          charge: +charge.toFixed(2),
         };
-      }
+      },
     };
   })();
 
@@ -781,13 +866,13 @@
 
   var collage = (function () {
     var slidesEl = document.getElementById("pola-slides");
-    var dotsEl   = document.getElementById("collage-dots");
-    var countEl  = document.getElementById("pola-count");
-    var polaEl   = document.getElementById("pola");
-    var skipBtn  = document.getElementById("collage-skip");
-    var rootEl   = document.getElementById("collage");
+    var dotsEl = document.getElementById("collage-dots");
+    var countEl = document.getElementById("pola-count");
+    var polaEl = document.getElementById("pola");
+    var skipBtn = document.getElementById("collage-skip");
+    var rootEl = document.getElementById("collage");
 
-    var slides = [];   // { figure, img, loaded }
+    var slides = []; // { figure, img, loaded }
     var dots = [];
     var index = 0;
     var timer = null;
@@ -805,7 +890,7 @@
         fig.className = "slide";
 
         var img = document.createElement("img");
-        img.alt = "";                    // decorative; the photos are the content
+        img.alt = ""; // decorative; the photos are the content
         img.decoding = "async";
         img.dataset.src = src;
         // A missing file must not stall the show.
@@ -853,8 +938,12 @@
           // drop the leaving class once the crossfade is over, so the
           // Ken Burns animation can restart cleanly next time round
           (function (fig) {
-            setTimeout(function () { fig.classList.remove("is-leaving"); },
-                       immediate ? 0 : PHOTO_FADE_MS);
+            setTimeout(
+              function () {
+                fig.classList.remove("is-leaving");
+              },
+              immediate ? 0 : PHOTO_FADE_MS,
+            );
           })(s.fig);
         }
       });
@@ -871,9 +960,10 @@
         active.style.animation = "";
       }
 
-      if (countEl) countEl.textContent = (index + 1) + " / " + slides.length;
+      if (countEl) countEl.textContent = index + 1 + " / " + slides.length;
       // gentle rock between shots
-      if (polaEl) polaEl.style.setProperty("--tilt", (index % 2 ? 1.3 : -1.4) + "deg");
+      if (polaEl)
+        polaEl.style.setProperty("--tilt", (index % 2 ? 1.3 : -1.4) + "deg");
     }
 
     function schedule() {
@@ -885,37 +975,70 @@
       }, PHOTO_HOLD_MS);
     }
 
-    function next() { if (running) { show(index + 1); schedule(); } }
-    function prev() { if (running) { show(index - 1); schedule(); } }
+    function next() {
+      if (running) {
+        show(index + 1);
+        schedule();
+      }
+    }
+    function prev() {
+      if (running) {
+        show(index - 1);
+        schedule();
+      }
+    }
 
     /* Tap the left third to go back, anywhere else to advance; swipe works
        in both directions. Vertical drags are ignored so scrolling still
        behaves normally. */
     function bindGestures() {
-      var x0 = 0, y0 = 0, t0 = 0, moved = false;
+      var x0 = 0,
+        y0 = 0,
+        t0 = 0,
+        moved = false;
 
-      rootEl.addEventListener("touchstart", function (e) {
-        var t = e.changedTouches[0];
-        x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); moved = false;
-      }, { passive: true });
+      rootEl.addEventListener(
+        "touchstart",
+        function (e) {
+          var t = e.changedTouches[0];
+          x0 = t.clientX;
+          y0 = t.clientY;
+          t0 = Date.now();
+          moved = false;
+        },
+        { passive: true },
+      );
 
-      rootEl.addEventListener("touchend", function (e) {
-        if (skipBtn && skipBtn.contains(e.target)) return;
-        var t = e.changedTouches[0];
-        var dx = t.clientX - x0, dy = t.clientY - y0;
-        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-          moved = true;
-          if (dx < 0) next(); else prev();
-        } else if (Date.now() - t0 < 500 && Math.abs(dx) < 12 && Math.abs(dy) < 12) {
-          moved = true;
-          tapAt(t.clientX);
-        }
-      }, { passive: true });
+      rootEl.addEventListener(
+        "touchend",
+        function (e) {
+          if (skipBtn && skipBtn.contains(e.target)) return;
+          var t = e.changedTouches[0];
+          var dx = t.clientX - x0,
+            dy = t.clientY - y0;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            moved = true;
+            if (dx < 0) next();
+            else prev();
+          } else if (
+            Date.now() - t0 < 500 &&
+            Math.abs(dx) < 12 &&
+            Math.abs(dy) < 12
+          ) {
+            moved = true;
+            tapAt(t.clientX);
+          }
+        },
+        { passive: true },
+      );
 
       // mouse/desktop, and any tap that did not come through touch
       rootEl.addEventListener("click", function (e) {
         if (skipBtn && skipBtn.contains(e.target)) return;
-        if (moved) { moved = false; return; }
+        if (moved) {
+          moved = false;
+          return;
+        }
         tapAt(e.clientX);
       });
     }
@@ -935,7 +1058,10 @@
     return {
       start: function () {
         build();
-        if (!slides.length) { goToLetter(); return; }
+        if (!slides.length) {
+          goToLetter();
+          return;
+        }
         // keep the dot-fill animation in lockstep with the real hold
         if (rootEl) rootEl.style.setProperty("--hold", PHOTO_HOLD_MS + "ms");
         running = true;
@@ -950,7 +1076,12 @@
       next: next,
       prev: prev,
       /** For the console: BDay.collage.goTo(4) */
-      goTo: function (i) { if (running) { show(i); schedule(); } }
+      goTo: function (i) {
+        if (running) {
+          show(i);
+          schedule();
+        }
+      },
     };
   })();
 
@@ -986,24 +1117,33 @@
         .replace(/\r\n/g, "\n")
         .trim()
         .split(/\n[ \t]*\n+/)
-        .map(function (block) { return block.trim(); })
+        .map(function (block) {
+          return block.trim();
+        })
         .filter(Boolean);
     }
 
     function escapeHtml(s) {
-      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
     }
 
-    var observer = ("IntersectionObserver" in window)
-      ? new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("is-visible");
-              observer.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.2, rootMargin: "0px 0px -8% 0px" })
-      : null;
+    var observer =
+      "IntersectionObserver" in window
+        ? new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add("is-visible");
+                  observer.unobserve(entry.target);
+                }
+              });
+            },
+            { threshold: 0.2, rootMargin: "0px 0px -8% 0px" },
+          )
+        : null;
 
     function render(paragraphs) {
       if (built || !bodyEl) return;
@@ -1014,7 +1154,7 @@
         p.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
         // Stagger whatever is already in view on arrival; anything below
         // the fold just waits for the observer instead of piling up delay.
-        p.style.transitionDelay = (Math.min(i, 5) * 140) + "ms";
+        p.style.transitionDelay = Math.min(i, 5) * 140 + "ms";
         bodyEl.appendChild(p);
         if (observer) observer.observe(p);
         else p.classList.add("is-visible"); // no IO support: just show it
@@ -1055,50 +1195,67 @@
      ============================================================ */
 
   var GAME = (function () {
-    var rootEl          = document.getElementById("game");
-    var meEl            = document.getElementById("sprite-me");
-    var herEl           = document.getElementById("sprite-her");
-    var meMarkEl        = document.getElementById("me-mark");
-    var dialogueEl      = document.getElementById("game-dialogue");
-    var dialogueTxtEl   = document.getElementById("game-dialogue-text");
-    var choicesEl       = document.getElementById("game-dialogue-choices");
-    var choiceBtns      = choicesEl ? choicesEl.querySelectorAll(".dialogue__choice") : [];
-    var dialogueHintEl  = document.getElementById("game-dialogue-hint");
-    var hintEl          = document.getElementById("game-hint");
-    var puzzleEl        = document.getElementById("game-puzzle");
-    var puzzleQEl       = document.getElementById("puzzle-question");
-    var suspectBtns     = document.querySelectorAll(".suspect");
-    var feedbackEl      = document.getElementById("puzzle-feedback");
-    var chestEl         = document.getElementById("game-chest");
-    var chestHintEl     = document.getElementById("chest-hint");
+    var rootEl = document.getElementById("game");
+    var meEl = document.getElementById("sprite-me");
+    var herEl = document.getElementById("sprite-her");
+    var meMarkEl = document.getElementById("me-mark");
+    var dialogueEl = document.getElementById("game-dialogue");
+    var dialogueTxtEl = document.getElementById("game-dialogue-text");
+    var choicesEl = document.getElementById("game-dialogue-choices");
+    var choiceBtns = choicesEl
+      ? choicesEl.querySelectorAll(".dialogue__choice")
+      : [];
+    var dialogueHintEl = document.getElementById("game-dialogue-hint");
+    var hintEl = document.getElementById("game-hint");
+    var puzzleEl = document.getElementById("game-puzzle");
+    var puzzleQEl = document.getElementById("puzzle-question");
+    var suspectBtns = document.querySelectorAll(".suspect");
+    var feedbackEl = document.getElementById("puzzle-feedback");
+    var chestEl = document.getElementById("game-chest");
+    var chestHintEl = document.getElementById("chest-hint");
 
     // Edit freely — shown one line at a time, tap to continue (no timer).
     // The last line is the one that gets the two "Yes" buttons attached,
     // revealed by a further tap rather than shown right away.
     var DIALOGUE = [
       { speaker: "Me", text: "Hey Chanda." },
-      { speaker: "Me", text: "Wanna play a game?" }
+      { speaker: "Me", text: "Wanna play a game?" },
     ];
 
     // Edit freely. Exactly one option needs correct: true.
-    var PUZZLE_QUESTION = "Guess what I was thinking about, every single day, walking into that canteen.";
+    var PUZZLE_QUESTION =
+      "Guess what I was thinking about, every single day, walking into that canteen.";
     var PUZZLE_OPTIONS = [
-      { name: "Should I order chai?",             correct: false },
-      { name: "How is she that beautiful?",        correct: true, reaction: "That's the one. Every single day." },
-      { name: "Did I leave my petrol lock open?",  correct: false }
+      { name: "Should I order chai?", correct: false },
+      {
+        name: "How is she that beautiful?",
+        correct: true,
+        reaction: "That's the one. Every single day.",
+      },
+      { name: "Did I leave my petrol lock open?", correct: false },
     ];
 
     if (puzzleQEl) puzzleQEl.textContent = PUZZLE_QUESTION;
 
     // Slow, readable legs — this is meant to breathe, not rush.
-    var LOOK_MS          = 1300;
-    var ENTER_LEG_MS     = 950;
-    var APPROACH_LEG_MS  = 1400;
-    var TO_CHEST_LEG_MS  = 950;
+    var LOOK_MS = 1300;
+    var ENTER_LEG_MS = 950;
+    var APPROACH_LEG_MS = 1400;
+    var TO_CHEST_LEG_MS = 950;
 
-    var ENTER        = [{ x: 15, y: 78 }, { x: 32, y: 58 }, { x: 42, y: 50 }];
-    var APPROACH      = [{ x: 52, y: 48 }, { x: 62, y: 42 }];
-    var TO_CHEST      = [{ x: 78, y: 70 }, { x: 84, y: 86 }];
+    var ENTER = [
+      { x: 15, y: 78 },
+      { x: 32, y: 58 },
+      { x: 42, y: 50 },
+    ];
+    var APPROACH = [
+      { x: 52, y: 48 },
+      { x: 62, y: 42 },
+    ];
+    var TO_CHEST = [
+      { x: 78, y: 70 },
+      { x: 84, y: 86 },
+    ];
 
     var started = false;
     var pendingSkip = null; // current beat's resolve(); a tap anywhere calls it
@@ -1172,11 +1329,15 @@
           return beat(legMs);
         });
       });
-      return p.then(function () { el.classList.remove("is-walking"); });
+      return p.then(function () {
+        el.classList.remove("is-walking");
+      });
     }
 
     function runSequence(steps) {
-      return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
+      return steps.reduce(function (p, step) {
+        return p.then(step);
+      }, Promise.resolve());
     }
 
     /** The puzzle beat: infinite retries, resolves only on the right option. */
@@ -1190,7 +1351,9 @@
             if (option.correct) {
               feedbackEl.textContent = option.reaction;
               feedbackEl.classList.add("is-correct");
-              Array.prototype.forEach.call(suspectBtns, function (b) { b.disabled = true; });
+              Array.prototype.forEach.call(suspectBtns, function (b) {
+                b.disabled = true;
+              });
               setTimeout(resolve, 1300);
             } else {
               feedbackEl.textContent = "hmm, not that.";
@@ -1233,20 +1396,30 @@
     function buildSteps() {
       var steps = [
         // walk in from the entrance — she's already seated, waiting
-        function () { return walk(meEl, ENTER, ENTER_LEG_MS); },
+        function () {
+          return walk(meEl, ENTER, ENTER_LEG_MS);
+        },
         function () {
           meEl.classList.add("is-looking");
           return beat(LOOK_MS);
         },
-        function () { meEl.classList.remove("is-looking"); return Promise.resolve(); },
+        function () {
+          meEl.classList.remove("is-looking");
+          return Promise.resolve();
+        },
         // notice her
         function () {
           meMarkEl.hidden = false;
           return beat(700);
         },
-        function () { meMarkEl.hidden = true; return Promise.resolve(); },
+        function () {
+          meMarkEl.hidden = true;
+          return Promise.resolve();
+        },
         // a real, slow walk over — this beat gets to breathe
-        function () { return walk(meEl, APPROACH, APPROACH_LEG_MS); }
+        function () {
+          return walk(meEl, APPROACH, APPROACH_LEG_MS);
+        },
       ];
 
       steps = steps.concat(dialogueSteps());
@@ -1279,7 +1452,7 @@
         function () {
           goToCollage();
           return Promise.resolve();
-        }
+        },
       ]);
 
       return steps;
@@ -1290,7 +1463,7 @@
         if (started) return;
         started = true;
         runSequence(buildSteps());
-      }
+      },
     };
   })();
 
@@ -1325,26 +1498,28 @@
      ============================================================ */
 
   var el = {
-    label:     document.getElementById("countdown-label"),
-    kicker:    document.querySelector(".intro__kicker"),
-    name:      document.getElementById("her-name"),
-    age:       document.getElementById("her-age"),
+    label: document.getElementById("countdown-label"),
+    kicker: document.querySelector(".intro__kicker"),
+    name: document.getElementById("her-name"),
+    age: document.getElementById("her-age"),
     countdown: document.getElementById("countdown"),
-    days:      document.getElementById("cd-days"),
-    hours:     document.getElementById("cd-hours"),
-    mins:      document.getElementById("cd-mins"),
-    secs:      document.getElementById("cd-secs"),
-    secsPill:  document.querySelector(".pill--secs")
+    days: document.getElementById("cd-days"),
+    hours: document.getElementById("cd-hours"),
+    mins: document.getElementById("cd-mins"),
+    secs: document.getElementById("cd-secs"),
+    secsPill: document.querySelector(".pill--secs"),
   };
 
   el.name.textContent = HER_NAME;
-  el.age.textContent  = HER_AGE;
+  el.age.textContent = HER_AGE;
 
   var timerId = null;
   var finished = false;
   var lastSeconds = -1;
 
-  function pad(n) { return n < 10 ? "0" + n : String(n); }
+  function pad(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
 
   function render() {
     var remaining = TARGET_MS - Date.now();
@@ -1355,15 +1530,15 @@
     }
 
     var totalSeconds = Math.floor(remaining / 1000);
-    var days    = Math.floor(totalSeconds / 86400);
-    var hours   = Math.floor(totalSeconds / 3600) % 24;
+    var days = Math.floor(totalSeconds / 86400);
+    var hours = Math.floor(totalSeconds / 3600) % 24;
     var minutes = Math.floor(totalSeconds / 60) % 60;
     var seconds = totalSeconds % 60;
 
-    el.days.textContent  = pad(days);
+    el.days.textContent = pad(days);
     el.hours.textContent = pad(hours);
-    el.mins.textContent  = pad(minutes);
-    el.secs.textContent  = pad(seconds);
+    el.mins.textContent = pad(minutes);
+    el.secs.textContent = pad(seconds);
 
     // Pulse the seconds pill, but only when the value actually changed
     // (avoids a double-pulse when we re-render on tab focus).
@@ -1381,7 +1556,7 @@
   function scheduleTick() {
     if (finished) return;
     var remaining = TARGET_MS - Date.now();
-    var delay = remaining <= 0 ? 0 : (remaining % 1000) || 1000;
+    var delay = remaining <= 0 ? 0 : remaining % 1000 || 1000;
     timerId = setTimeout(function () {
       render();
       scheduleTick();
@@ -1416,7 +1591,11 @@
     finished = true;
     stopTimer();
 
-    el.days.textContent = el.hours.textContent = el.mins.textContent = el.secs.textContent = "00";
+    el.days.textContent =
+      el.hours.textContent =
+      el.mins.textContent =
+      el.secs.textContent =
+        "00";
     hideCountdownUI();
 
     dbg.phase("zero reached");
@@ -1433,7 +1612,9 @@
      last step (the chest) hands off to the collage.
      ============================================================ */
   function onBirthdayReached() {
-    setTimeout(function () { blowout.begin(); }, 1500);
+    setTimeout(function () {
+      blowout.begin();
+    }, 1500);
   }
 
   // Mobile browsers throttle timers in background tabs, so re-sync the
@@ -1486,13 +1667,13 @@
     blowout: blowout,
     collage: collage,
     photos: PHOTOS,
-    blowTuning: blowout.tuning,  // tweak thresholds live: BDay.blowTuning.RATIO_MIN = 1.5
-    blowDebug: blowout.debug,    // BDay.blowDebug() while blowing, to read levels
+    blowTuning: blowout.tuning, // tweak thresholds live: BDay.blowTuning.RATIO_MIN = 1.5
+    blowDebug: blowout.debug, // BDay.blowDebug() while blowing, to read levels
     goToCollage: goToCollage,
     goToLetter: goToLetter,
     goToGame: goToGame,
     letter: LETTER,
     game: GAME,
-    config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO }
+    config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO },
   };
 })();
