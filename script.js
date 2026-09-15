@@ -26,7 +26,7 @@
   // The exact instant we count down to, pinned to Karachi time (UTC+5).
   // The "+05:00" offset is part of the string, so this resolves to the same
   // absolute moment no matter what timezone the phone is set to.
-  var TARGET_ISO = "2026-09-16T00:00:00+05:00";
+  var TARGET_ISO = "2026-09-15T14:50:00+05:00";
   var TARGET_MS  = new Date(TARGET_ISO).getTime();
 
   /* The collage slideshow, in story order. Add or reorder freely — the
