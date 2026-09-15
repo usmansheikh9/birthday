@@ -546,8 +546,12 @@ body::before {
   color: var(--ink-soft);
 }
 
-/* countdown fades out once we hit zero */
+/* countdown fades out once we hit zero. animation:none is load-bearing —
+   without it the entrance popUp keyframe above (delayed .3s, running .6s)
+   overrides this opacity while it plays, flashing the pills back in even
+   when is-done was already applied before first paint (?skip). */
 .countdown.is-done {
+  animation: none;
   opacity: 0;
   transform: scale(.94);
   transition: opacity .5s ease, transform .5s ease;
@@ -1253,12 +1257,16 @@ body::before {
 
 .chest.is-open .chest__lid { transform: rotateX(-115deg); }
 
-/* the "tap the chest" instruction — anchored to the chest, biased left
-   so it never runs off the stage's right edge (the chest sits near it) */
+/* the "tap the chest" instruction. Positioned by its own --x/--y (not
+   nested in .chest) and stacked above every sprite (z-index 5), so a
+   sprite walking past it can never cover it. Anchored up and to the left
+   of the chest, safely inside the stage on every side. */
 .chest__hint {
   position: absolute;
-  bottom: 125%;
-  right: -20%;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  z-index: 8;
   white-space: nowrap;
   padding: calc(4 * var(--u)) calc(9 * var(--u));
   border-radius: calc(8 * var(--u));
@@ -1268,7 +1276,14 @@ body::before {
   font-size: clamp(10px, calc(11 * var(--u)), 13px);
   font-weight: 600;
   pointer-events: none;
-  animation: markPop .4s cubic-bezier(.3, 1.5, .5, 1);
+  animation: chestHintPop .4s cubic-bezier(.3, 1.5, .5, 1);
+}
+
+/* markPop's translateX(-50%) alone would fight this element's own
+   translate(-50%, -50%) centering, so it gets its own keyframe */
+@keyframes chestHintPop {
+  from { opacity: 0; transform: translate(-50%, -50%) translateY(20%) scale(.7); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 /* ---- sprites: "me" and "her" ---- */

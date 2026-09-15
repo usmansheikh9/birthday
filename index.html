@@ -266,11 +266,12 @@
        dialogue choice, the whodunit puzzle, and the chest all take a
        deliberate tap on their own target instead.
 
-       Flow: reachBirthday() (real countdown or ?skip) fires confetti
-       and calls goToGame() — this scene now runs BEFORE the candle
-       blow-out, not after the letter. Solving the puzzle and tapping
-       the chest is what finally reveals the blow-out panel back on the
-       cake screen (see GAME's last step and onBirthdayReached()).
+       Flow: reachBirthday() (real countdown or ?skip) fires confetti and
+       calls blowout.begin() directly, same as before this scene existed.
+       Once the candles are out, blowout's own finish() calls goToGame()
+       — so this scene runs right after the blow-out. Tapping the chest
+       at the end of the game is what calls goToCollage(), which leads
+       on to the letter exactly as before.
        ========================================================== -->
   <section class="screen screen--game" data-screen="game">
     <div class="game" id="game">
@@ -327,8 +328,11 @@
         <div class="chest" id="game-chest" style="--x:90%; --y:92%;">
           <span class="chest__lid"></span>
           <span class="chest__latch"></span>
-          <span class="chest__hint" id="chest-hint" hidden>Tap the chest &#10024;</span>
         </div>
+
+        <!-- own stacking layer, positioned above the chest — a sprite
+             walking past must never be able to cover this -->
+        <span class="chest__hint" id="chest-hint" style="--x:78%; --y:76%;" hidden>Tap the chest &#10024;</span>
 
         <!-- "her" — already seated at her table from the start -->
         <div class="sprite sprite--her" id="sprite-her" style="--x:72%; --y:40%;">

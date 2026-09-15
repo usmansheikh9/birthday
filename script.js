@@ -736,7 +736,7 @@
         confetti.fire({ count: 46, power: 9, y: window.innerHeight * 0.42 });
       }, 900);
 
-      setTimeout(goToCollage, 2100);
+      setTimeout(goToGame, 2100);
     }
 
     function stopMic() {
@@ -1075,12 +1075,12 @@
     var chestEl         = document.getElementById("game-chest");
     var chestHintEl     = document.getElementById("chest-hint");
 
-    // Edit freely — shown one line at a time, "Me"/"Her" prefixed. The
-    // last line is the one that gets the two "Yes" buttons attached.
+    // Edit freely — shown one line at a time, tap to continue (no timer).
+    // The last line is the one that gets the two "Yes" buttons attached,
+    // revealed by a further tap rather than shown right away.
     var DIALOGUE = [
-      { speaker: "Me",  text: "Hey Chanda." },
-      { speaker: "Her", text: "Hey." },
-      { speaker: "Me",  text: "Wanna play a game?" }
+      { speaker: "Me", text: "Hey Chanda." },
+      { speaker: "Me", text: "Wanna play a game?" }
     ];
 
     // Edit freely. Exactly one option needs correct: true.
@@ -1147,6 +1147,18 @@
       });
     }
 
+    /** Resolves only on a tap anywhere on the scene — no timeout at all.
+        Dialogue lines use this instead of beat() so they never auto-advance. */
+    function waitForTap() {
+      return new Promise(function (resolve) {
+        function finish() {
+          if (pendingSkip === finish) pendingSkip = null;
+          resolve();
+        }
+        pendingSkip = finish;
+      });
+    }
+
     function setPos(el, pt) {
       el.style.setProperty("--x", pt.x + "%");
       el.style.setProperty("--y", pt.y + "%");
@@ -1193,24 +1205,32 @@
       });
     }
 
-    /** The Me/Her back-and-forth. The last line carries the "Yes"/"Yes" choice. */
+    /** The dialogue: every line is tap-only, no timer. The last line gets a
+        further tap to reveal the "Yes"/"Yes" choice, rather than showing it
+        right away. */
     function dialogueSteps() {
-      return DIALOGUE.map(function (line, i) {
+      var steps = [];
+
+      DIALOGUE.forEach(function (line, i) {
         var isLast = i === DIALOGUE.length - 1;
-        return function () {
+        steps.push(function () {
+          hintEl.hidden = true;
           dialogueTxtEl.textContent = line.speaker + ": " + line.text;
           dialogueEl.hidden = false;
-          if (isLast) {
-            hintEl.hidden = true;
+          choicesEl.hidden = true;
+          dialogueHintEl.hidden = false;
+          return waitForTap();
+        });
+        if (isLast) {
+          steps.push(function () {
             dialogueHintEl.hidden = true;
             choicesEl.hidden = false;
             return waitForClick(choiceBtns);
-          }
-          dialogueHintEl.hidden = false;
-          choicesEl.hidden = true;
-          return beat(3200);
-        };
+          });
+        }
       });
+
+      return steps;
     }
 
     function buildSteps() {
@@ -1260,9 +1280,7 @@
           return beat(500);
         },
         function () {
-          // hand off to the blow-out panel, back on the cake screen
-          showScreen("cake");
-          blowout.begin();
+          goToCollage();
           return Promise.resolve();
         }
       ]);
@@ -1287,7 +1305,7 @@
      The screen handoffs.
      ============================================================ */
 
-  /** Called once both candles are out and the smoke has cleared. */
+  /** Called once the chest at the end of the game is tapped. */
   function goToCollage() {
     dbg.phase("→ collage");
     showScreen("collage");
@@ -1299,8 +1317,9 @@
     showScreen("letter");
   }
 
-  /** Called once the birthday confetti lands, and again (harmlessly — the
-      game only ever plays once) from the letter's "there's more →" button. */
+  /** Called once both candles are out and the smoke has cleared, and again
+      (harmlessly — the game only ever plays once) from the letter's
+      "there's more →" button. */
   function goToGame() {
     dbg.phase("→ game");
     showScreen("game");
@@ -1381,6 +1400,18 @@
     }
   }
 
+  /** Swaps the countdown UI to its zero-state look. Idempotent, and split out
+      from reachBirthday() so ?skip can apply it instantly at boot — before
+      the very first paint — instead of flashing the ticking timer for the
+      short delay that lets the cake finish bouncing in. */
+  function hideCountdownUI() {
+    el.countdown.classList.add("is-done");
+    el.label.textContent = "Happy Birthday, " + HER_NAME + "!";
+    el.label.classList.add("is-birthday");
+    // "almost time" is no longer true once we are at zero.
+    if (el.kicker) el.kicker.hidden = true;
+  }
+
   /**
    * The zero state. Stops the clock, swaps the label, fires confetti and
    * hands off to onBirthdayReached().
@@ -1391,13 +1422,7 @@
     stopTimer();
 
     el.days.textContent = el.hours.textContent = el.mins.textContent = el.secs.textContent = "00";
-
-    el.countdown.classList.add("is-done");
-    el.label.textContent = "Happy Birthday, " + HER_NAME + "!";
-    el.label.classList.add("is-birthday");
-
-    // "almost time" is no longer true once we are at zero.
-    if (el.kicker) el.kicker.hidden = true;
+    hideCountdownUI();
 
     dbg.phase("zero reached");
     confetti.celebrate();
@@ -1408,13 +1433,12 @@
   /* ============================================================
      Fires exactly once, the moment the countdown reaches zero (or
      immediately when the page is loaded with ?skip). Hands off to the
-     "how we met" game after a beat, so the confetti burst lands first.
-     The blow-out panel no longer follows directly from here — GAME's
-     last step reveals it once the chest at the end of the game is
-     tapped (see the GAME module above).
+     candle blow-out after a beat, so the confetti burst lands first.
+     The blow-out's own completion step now hands off to the game, whose
+     last step (the chest) hands off to the collage.
      ============================================================ */
   function onBirthdayReached() {
-    setTimeout(function () { goToGame(); }, 1500);
+    setTimeout(function () { blowout.begin(); }, 1500);
   }
 
   // Mobile browsers throttle timers in background tabs, so re-sync the
@@ -1442,7 +1466,11 @@
 
   if (params.has("skip")) {
     // ?skip — test the zero state without waiting for the real date.
-    // Slight delay so the cake finishes bouncing in first.
+    // Apply the zero-state look synchronously, before the first paint, so
+    // the ticking countdown never renders even for a frame — then still
+    // wait a beat before actually firing confetti, so the cake finishes
+    // bouncing in first.
+    hideCountdownUI();
     setTimeout(reachBirthday, 700);
   } else {
     render();
