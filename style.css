@@ -73,7 +73,11 @@ html, body {
   /* belt and braces: nothing may ever scroll sideways */
   max-width: 100%;
   overflow-x: hidden;
-  overscroll-behavior-y: none;
+  /* x only: containing the Y axis here breaks native touch scrolling on
+     some Android browsers once a screen (like the letter) is taller than
+     the viewport, since html/body is the only scroll container on the
+     page. Horizontal rubber-banding is already blocked by overflow-x. */
+  overscroll-behavior-x: none;
 }
 
 body {
