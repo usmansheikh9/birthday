@@ -1026,12 +1026,6 @@ body::before {
   color: var(--pink-d);
 }
 
-.letter__continue {
-  position: relative;
-  z-index: 1;
-  margin-top: calc(4 * var(--u));
-}
-
 /* ============================================================
    7e. THE GAME — top-down "how we met" cutscene
    Flat shapes only, no image assets. Everything is positioned with

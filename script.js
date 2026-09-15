@@ -976,7 +976,6 @@
 
   var LETTER = (function () {
     var bodyEl = document.getElementById("letter-body");
-    var continueBtn = document.getElementById("letter-continue");
     var built = false;
 
     // Shown only if assets/letter.txt is missing or fails to load.
@@ -1037,8 +1036,6 @@
           render(FALLBACK);
         });
     }
-
-    if (continueBtn) continueBtn.addEventListener("click", goToGame);
 
     return { load: load };
   })();
@@ -1317,9 +1314,7 @@
     showScreen("letter");
   }
 
-  /** Called once both candles are out and the smoke has cleared, and again
-      (harmlessly — the game only ever plays once) from the letter's
-      "there's more →" button. */
+  /** Called once both candles are out and the smoke has cleared. */
   function goToGame() {
     dbg.phase("→ game");
     showScreen("game");
