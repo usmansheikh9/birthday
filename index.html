@@ -10,7 +10,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@0,600;1,600&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
 
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -225,15 +225,35 @@
   </section>
 
   <!-- ==========================================================
-       SCREEN 4 - QR LETTER VIEWER   (TODO)
-       Wire up: render a QR that points at the letter, or scan one to
-       unlock the letter text. Letter content can live in a <template>.
+       SCREEN 4 - THE LETTER
+       Letter body is loaded from /assets/letter.txt at runtime (see
+       LETTER.load() in script.js) and split into paragraphs on blank
+       lines. Each paragraph fades/rises in on its own, either in a
+       gentle stagger on arrival or as she scrolls down to it — she is
+       never rushed.
        ========================================================== -->
   <section class="screen screen--letter" data-screen="letter">
-    <div class="placeholder">
-      <h2>A letter for you</h2>
-      <p>Scan to unlock &#128140;</p>
-      <!-- TODO: QR canvas + letter body -->
+    <div class="letter" id="letter">
+
+      <!-- soft ambient hearts, purely decorative -->
+      <div class="letter__ambient" aria-hidden="true">
+        <span class="letter__mote letter__mote--1">&#10084;</span>
+        <span class="letter__mote letter__mote--2">&#10022;</span>
+        <span class="letter__mote letter__mote--3">&#10084;</span>
+        <span class="letter__mote letter__mote--4">&#10022;</span>
+      </div>
+
+      <p class="letter__kicker">&#128140; a letter, just for you</p>
+
+      <article class="letter__paper" id="letter-paper">
+        <div class="letter__body" id="letter-body">
+          <!-- paragraphs injected here by LETTER.load() -->
+        </div>
+      </article>
+
+      <button class="btn btn--ghost letter__continue" id="letter-continue" type="button">
+        there's more &rarr;
+      </button>
     </div>
   </section>
 

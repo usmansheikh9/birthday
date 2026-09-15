@@ -962,6 +962,92 @@
   });
 
   /* ============================================================
+     4d. THE LETTER
+     Body copy lives in /assets/letter.txt, not in the markup, so it can
+     be rewritten without touching code. Blank-line-separated blocks
+     become paragraphs; a single newline inside a block becomes a <br>
+     (used for the "Yours, / Usman Sheikh" signature).
+
+     Paragraphs fade/rise in individually rather than as one block: the
+     ones already in view get a gentle stagger, and the rest wait for an
+     IntersectionObserver to fire as she scrolls down to them — so the
+     pacing never fights her own reading speed.
+     ============================================================ */
+
+  var LETTER = (function () {
+    var bodyEl = document.getElementById("letter-body");
+    var continueBtn = document.getElementById("letter-continue");
+    var built = false;
+
+    // Shown only if assets/letter.txt is missing or fails to load.
+    var FALLBACK = ["(the letter isn't here yet — add assets/letter.txt)"];
+
+    function splitParagraphs(text) {
+      return text
+        .replace(/\r\n/g, "\n")
+        .trim()
+        .split(/\n[ \t]*\n+/)
+        .map(function (block) { return block.trim(); })
+        .filter(Boolean);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    var observer = ("IntersectionObserver" in window)
+      ? new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.2, rootMargin: "0px 0px -8% 0px" })
+      : null;
+
+    function render(paragraphs) {
+      if (built || !bodyEl) return;
+      built = true;
+
+      paragraphs.forEach(function (text, i) {
+        var p = document.createElement("p");
+        p.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+        // Stagger whatever is already in view on arrival; anything below
+        // the fold just waits for the observer instead of piling up delay.
+        p.style.transitionDelay = (Math.min(i, 5) * 140) + "ms";
+        bodyEl.appendChild(p);
+        if (observer) observer.observe(p);
+        else p.classList.add("is-visible"); // no IO support: just show it
+      });
+    }
+
+    function load() {
+      fetch("assets/letter.txt")
+        .then(function (res) {
+          if (!res.ok) throw new Error("letter.txt " + res.status);
+          return res.text();
+        })
+        .then(function (text) {
+          var paragraphs = splitParagraphs(text);
+          render(paragraphs.length ? paragraphs : FALLBACK);
+        })
+        .catch(function (err) {
+          console.warn("[letter] falling back to placeholder:", err);
+          render(FALLBACK);
+        });
+    }
+
+    if (continueBtn) continueBtn.addEventListener("click", goToGame);
+
+    return { load: load };
+  })();
+
+  // Fetch + build right away so the letter is ready the moment she
+  // arrives from the collage — nothing to wait on mid-scene.
+  LETTER.load();
+
+  /* ============================================================
      The screen handoffs.
      ============================================================ */
 
@@ -971,11 +1057,16 @@
     showScreen("collage");
   }
 
-  /* PLACEHOLDER — the letter screen comes next.
-     Called after the last photo (09, the chai cups). */
+  /** Called after the last photo (09, the chai cups). */
   function goToLetter() {
     dbg.phase("→ letter");
     showScreen("letter");
+  }
+
+  /** Called from the letter's "there's more →" button. Last screen. */
+  function goToGame() {
+    dbg.phase("→ game");
+    showScreen("game");
   }
 
   /* ============================================================
@@ -1136,6 +1227,8 @@
     blowDebug: blowout.debug,    // BDay.blowDebug() while blowing, to read levels
     goToCollage: goToCollage,
     goToLetter: goToLetter,
+    goToGame: goToGame,
+    letter: LETTER,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO }
   };
 })();

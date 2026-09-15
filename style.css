@@ -894,6 +894,136 @@ body::before {
 
 .collage__skip { margin-top: calc(2 * var(--u)); }
 
+/* ============================================================
+   7d. THE LETTER — intimate, handwritten-letter feel
+   Paper card on the warm cream backdrop, serif body copy, gentle
+   paragraph-by-paragraph reveal. Deliberately quieter than the rest
+   of the site: no bounce, no confetti colours on the type itself.
+   ============================================================ */
+
+/* This screen can run taller than one viewport, so it must not use the
+   centred-flex layout every other screen uses — that clips content above
+   the fold when it overflows. It scrolls in normal document flow instead. */
+.screen--letter.is-active {
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.letter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(16 * var(--u));
+  width: 100%;
+  padding-top: calc(4 * var(--u));
+  padding-bottom: calc(10 * var(--u));
+}
+
+.letter__kicker {
+  margin: 0;
+  font-size: clamp(13px, calc(15 * var(--u)), 18px);
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+}
+
+/* ---- ambient hearts/sparkles: subtle, slow, never distracting ---- */
+.letter__ambient {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.letter__mote {
+  position: absolute;
+  font-size: clamp(14px, calc(18 * var(--u)), 22px);
+  color: var(--pink);
+  opacity: 0;
+  animation: moteDrift 9s ease-in-out infinite;
+}
+
+.letter__mote--1 { top: 2%;  left: 6%;  color: var(--pink);  animation-delay: 0s; }
+.letter__mote--2 { top: 14%; right: 8%; color: var(--sun);   animation-delay: 2.2s; font-size: clamp(11px, calc(14 * var(--u)), 17px); }
+.letter__mote--3 { top: 46%; right: 3%; color: var(--lilac); animation-delay: 4.4s; }
+.letter__mote--4 { top: 62%; left: 2%;  color: var(--mint-d); animation-delay: 6.6s; font-size: clamp(11px, calc(14 * var(--u)), 17px); }
+
+@keyframes moteDrift {
+  0%   { opacity: 0;   transform: translateY(0) scale(.8); }
+  15%  { opacity: .5; }
+  50%  { opacity: .35; transform: translateY(calc(-18 * var(--u))) scale(1); }
+  85%  { opacity: .15; }
+  100% { opacity: 0;   transform: translateY(calc(-34 * var(--u))) scale(.85); }
+}
+
+/* ---- the paper card ---- */
+.letter__paper {
+  position: relative;
+  z-index: 1;
+  width: min(100%, calc(340 * var(--u)));
+  padding: calc(30 * var(--u)) calc(24 * var(--u)) calc(34 * var(--u));
+  border-radius: calc(10 * var(--u)) calc(10 * var(--u)) calc(3 * var(--u)) calc(3 * var(--u)) / calc(6 * var(--u));
+  background:
+    radial-gradient(140% 60% at 15% 0%, rgba(255, 255, 255, .8) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, #FFFDF6 0%, #FFF8EA 100%);
+  box-shadow:
+    0 calc(2 * var(--u)) calc(3 * var(--u)) rgba(120, 85, 60, .1),
+    0 calc(16 * var(--u)) calc(34 * var(--u)) rgba(120, 85, 60, .22);
+  animation: paperIn 1.1s cubic-bezier(.22, 1, .36, 1) backwards;
+}
+
+@keyframes paperIn {
+  from { opacity: 0; transform: translateY(calc(18 * var(--u))) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.letter__body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(16 * var(--u));
+}
+
+.letter__body p {
+  margin: 0;
+  font-family: "EB Garamond", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: clamp(16px, calc(19 * var(--u)), 21px);
+  line-height: 1.72;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(calc(12 * var(--u)));
+  transition: opacity 1s ease-out, transform 1s cubic-bezier(.22, 1, .36, 1);
+}
+
+.letter__body p.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* the opening line ("Alishba,") reads as a salutation */
+.letter__body p:first-child {
+  font-family: "Playfair Display", "EB Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(19px, calc(23 * var(--u)), 26px);
+  color: var(--pink-d);
+}
+
+/* the closing line ("Yours, / Usman Sheikh") reads as a signature */
+.letter__body p:last-child {
+  margin-top: calc(4 * var(--u));
+  font-family: "Caveat", "EB Garamond", cursive;
+  font-size: clamp(24px, calc(30 * var(--u)), 34px);
+  line-height: 1.35;
+  color: var(--pink-d);
+}
+
+.letter__continue {
+  position: relative;
+  z-index: 1;
+  margin-top: calc(4 * var(--u));
+}
+
 /* ---------- 8. PLACEHOLDER SCREENS ---------- */
 .placeholder {
   text-align: center;
