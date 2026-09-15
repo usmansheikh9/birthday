@@ -149,6 +149,54 @@
   }
 
   /* ============================================================
+     2b. AUDIO UNLOCK
+     Web Audio refuses to make sound until a real user gesture has
+     unlocked it. The zero-state confetti can fire with no gesture behind
+     it at all (the countdown reaching zero live with nothing tapped, or
+     a cold load straight into an already-past target) — this is the one
+     shared AudioContext the whole page reuses, plus a passive listener
+     that primes it off the very first tap/key anywhere, so any gesture
+     that happens to land before the confetti fires carries through. The
+     explicit "tap to begin" gate (see boot) covers the case where none
+     does.
+     ============================================================ */
+
+  var audioUnlock = (function () {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    var ctx = null;
+    var primed = false;
+
+    /** Get (creating on first call) the shared context. Never closed —
+        reused for every celebration sound the page ever plays. */
+    function context() {
+      if (!Ctx) return null;
+      if (!ctx) ctx = new Ctx();
+      return ctx;
+    }
+
+    /** Call from inside an actual user-gesture handler. Idempotent. */
+    function unlock() {
+      var c = context();
+      if (c && c.state === "suspended" && c.resume) {
+        c.resume().catch(function () {});
+      }
+      return c;
+    }
+
+    function prime() {
+      if (primed) return;
+      primed = true;
+      unlock();
+      document.removeEventListener("pointerdown", prime);
+      document.removeEventListener("keydown", prime);
+    }
+    document.addEventListener("pointerdown", prime, { passive: true });
+    document.addEventListener("keydown", prime, { passive: true });
+
+    return { context: context, unlock: unlock };
+  })();
+
+  /* ============================================================
      3. CONFETTI — tiny canvas particle burst, no library
      ============================================================ */
 
@@ -279,15 +327,15 @@
     /* A short celebratory sound — synthesized with the Web Audio API rather
        than shipping an audio file, so there is nothing to download and
        nothing that can 404. A quick four-note fanfare (like a party horn).
-       Autoplay policies can block this outright with no interaction on the
-       page (e.g. she opens the link after the target has already passed),
-       so every failure mode here is swallowed — a blocked sound is silent,
-       never an error. */
+       Runs on the shared context from audioUnlock, so whatever gesture
+       already primed it (the tap gate, or an earlier tap anywhere on the
+       page) carries straight through; if it is still suspended here, one
+       last resume is attempted and, if the browser still refuses it, the
+       notes are skipped rather than erroring. */
     function playCelebrationSound() {
       try {
-        var Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
-        var actx = new Ctx();
+        var actx = audioUnlock.context();
+        if (!actx) return;
 
         var begin = function () {
           var now = actx.currentTime;
@@ -306,12 +354,6 @@
             osc.start(t);
             osc.stop(t + 0.3);
           });
-          setTimeout(
-            function () {
-              if (actx.close) actx.close();
-            },
-            notes.length * 90 + 400,
-          );
         };
 
         if (actx.state === "suspended" && actx.resume) {
@@ -1558,6 +1600,8 @@
     mins: document.getElementById("cd-mins"),
     secs: document.getElementById("cd-secs"),
     secsPill: document.querySelector(".pill--secs"),
+    zeroGate: document.getElementById("zero-gate"),
+    zeroGateBtn: document.getElementById("zero-gate-btn"),
   };
 
   el.name.textContent = HER_NAME;
@@ -1565,6 +1609,7 @@
 
   var timerId = null;
   var finished = false;
+  var zeroStateEntered = false;
   var lastSeconds = -1;
 
   function pad(n) {
@@ -1575,7 +1620,7 @@
     var remaining = TARGET_MS - Date.now();
 
     if (remaining <= 0) {
-      reachBirthday();
+      enterZeroState();
       return;
     }
 
@@ -1604,7 +1649,7 @@
      gets throttled — we schedule the next tick for the exact moment the
      displayed seconds value is due to change. */
   function scheduleTick() {
-    if (finished) return;
+    if (finished || zeroStateEntered) return;
     var remaining = TARGET_MS - Date.now();
     var delay = remaining <= 0 ? 0 : remaining % 1000 || 1000;
     timerId = setTimeout(function () {
@@ -1654,6 +1699,48 @@
     onBirthdayReached();
   }
 
+  /** True once the shared AudioContext has actually been unlocked by a
+      real gesture — the passive first-tap primer in audioUnlock (see
+      above), or a previous tap on the gate below. */
+  function audioIsUnlocked() {
+    var ctx = audioUnlock.context();
+    return !!ctx && ctx.state === "running";
+  }
+
+  /** The single entry point into the zero-state, however it is reached —
+      the live countdown ticking down to it, or a cold load already past
+      the target (?skip has its own path in boot; see there). Runs once.
+
+      Web Audio needs a real user gesture before it will make sound, and
+      neither path is guaranteed to have had one: the cake screen has no
+      interactive element at all before this point. So this gates on one
+      tap ONLY when audio genuinely has not been unlocked yet by anything
+      else — if she has already touched the page (the passive primer
+      catching a scroll, a stray tap, an earlier visit to this gate), the
+      zero-state proceeds immediately and the live countdown is never
+      interrupted for a redundant tap. */
+  function enterZeroState() {
+    if (zeroStateEntered) return;
+    zeroStateEntered = true;
+    stopTimer();
+    hideCountdownUI();
+
+    if (audioIsUnlocked() || !el.zeroGate || !el.zeroGateBtn) {
+      setTimeout(reachBirthday, 700);
+      return;
+    }
+
+    dbg.phase("tap to begin");
+    el.zeroGate.hidden = false;
+    el.zeroGateBtn.addEventListener("click", function onTap() {
+      el.zeroGateBtn.removeEventListener("click", onTap);
+      audioUnlock.unlock();
+      el.zeroGate.hidden = true;
+      dbg.phase("tapped -> zero");
+      setTimeout(reachBirthday, 700);
+    });
+  }
+
   /* ============================================================
      Fires exactly once, the moment the countdown reaches zero (or
      immediately when the page is loaded with ?skip). Hands off to the
@@ -1670,7 +1757,11 @@
   // Mobile browsers throttle timers in background tabs, so re-sync the
   // moment we come back into view.
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && !finished) {
+    if (
+      document.visibilityState === "visible" &&
+      !finished &&
+      !zeroStateEntered
+    ) {
       render();
       stopTimer();
       scheduleTick();
@@ -1694,22 +1785,20 @@
   // applies immediately and the ticking countdown never renders at all.
   var alreadyPast = Date.now() >= TARGET_MS;
 
-  dbg.phase(
-    params.has("skip")
-      ? "?skip -> zero"
-      : alreadyPast
-        ? "already past target -> zero"
-        : "counting down",
-  );
-
-  if (params.has("skip") || alreadyPast) {
-    // Apply the zero-state look synchronously, before the first paint, so
-    // the ticking countdown never renders even for a frame — then still
-    // wait a beat before actually firing confetti, so the cake finishes
-    // bouncing in first.
+  if (params.has("skip")) {
+    // ?skip — test the zero state without waiting for the real date. A
+    // developer typing this into the URL bar is gesture enough on its
+    // own, so this bypasses the tap gate outright (see enterZeroState).
+    dbg.phase("?skip -> zero");
+    zeroStateEntered = true;
+    stopTimer();
     hideCountdownUI();
     setTimeout(reachBirthday, 700);
+  } else if (alreadyPast) {
+    dbg.phase("already past target");
+    enterZeroState();
   } else {
+    dbg.phase("counting down");
     render();
     scheduleTick();
   }
@@ -1734,6 +1823,7 @@
     goToLetter: goToLetter,
     goToGame: goToGame,
     letter: LETTER,
+    audioUnlock: audioUnlock, // BDay.audioUnlock.context().state, for checking from the console
     game: GAME,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO },
   };

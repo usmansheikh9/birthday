@@ -1588,6 +1588,29 @@ body::before {
   pointer-events: none;
 }
 
+/* ---------- 10a. ZERO-STATE TAP GATE ---------- */
+.zero-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* same backdrop as the page shell, so there is no visible seam behind it */
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 58%),
+    linear-gradient(168deg, #FFF6E9 0%, #FFE6D6 32%, #FFD9E6 64%, #DBF4E8 100%);
+}
+
+.zero-gate__btn {
+  animation: zero-gate-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes zero-gate-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+
 /* ---------- 10b. DEBUG READOUT (?debug) ----------
    Created by script.js only when ?debug is in the URL. pointer-events:none
    is load-bearing: it must never intercept a tap meant for the candles. */

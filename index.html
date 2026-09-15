@@ -36,6 +36,20 @@
 <canvas id="confetti-canvas" aria-hidden="true"></canvas>
 
 <!-- ============================================================
+     ZERO-STATE TAP GATE
+     Web Audio needs a real user gesture before it will make sound, and a
+     cold load straight into the zero-state (opening the link any time
+     after TARGET_MS) has had none yet. This stands in for that gesture -
+     shown instead of the countdown, never alongside it - before the
+     confetti/blow-out sequence proceeds. See boot in script.js.
+     ============================================================ -->
+<div class="zero-gate" id="zero-gate" hidden>
+  <button class="btn btn--primary zero-gate__btn" id="zero-gate-btn" type="button">
+    Tap to begin &#127881;
+  </button>
+</div>
+
+<!-- ============================================================
      #app - the screen manager root.
      Every direct child .screen is a full page. showScreen(name)
      in script.js toggles .is-active by data-screen value.
