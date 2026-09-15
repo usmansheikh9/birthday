@@ -1048,6 +1048,198 @@
   LETTER.load();
 
   /* ============================================================
+     4e. THE GAME — a short, scripted top-down "how we met" cutscene
+     No free-roam, no physics: GAME.play() runs a fixed queue of "steps",
+     each a function returning a Promise. A step either resolves itself
+     after a timeout (a walk, a pause) or waits on beat() — tapping
+     anywhere on the scene resolves whatever beat is currently pending,
+     which is what lets her skip ahead through the auto-play at her own
+     pace instead of sitting through fixed timing.
+     ============================================================ */
+
+  var GAME = (function () {
+    var rootEl        = document.getElementById("game");
+    var meEl          = document.getElementById("sprite-me");
+    var herEl         = document.getElementById("sprite-her");
+    var meMarkEl      = document.getElementById("me-mark");
+    var dayEl         = document.getElementById("game-day");
+    var dayNumEl      = document.getElementById("game-day-num");
+    var dialogueEl    = document.getElementById("game-dialogue");
+    var dialogueTxtEl = document.getElementById("game-dialogue-text");
+    var captionEl     = document.getElementById("game-caption");
+    var captionTxtEl  = document.getElementById("game-caption-text");
+    var fxEl          = document.getElementById("game-fx");
+    var fxIconEl      = document.getElementById("game-fx-icon");
+    var fxTextEl      = document.getElementById("game-fx-text");
+    var hintEl        = document.getElementById("game-hint");
+
+    // Edit freely — shown one line at a time, tap (or ~4s) to advance.
+    var DIALOGUE = [
+      "Should I...",
+      "What if she thinks it's weird...",
+      "Just send it."
+    ];
+
+    var LOOP_ENTER  = [{ x: 15, y: 75 }, { x: 28, y: 52 }];
+    var LOOP_EXIT   = [{ x: 15, y: 75 }, { x: 15, y: 97 }];
+    var FINAL_ENTER = [{ x: 15, y: 75 }, { x: 35, y: 55 }, { x: 55, y: 42 }];
+    var BESIDE_HER  = [{ x: 60, y: 42 }];
+    var HER_SEAT     = { x: 72, y: 40 };
+
+    var started = false;
+    var pendingSkip = null; // current beat's resolve(); a tap anywhere calls it
+
+    if (rootEl) {
+      rootEl.addEventListener("click", function () {
+        if (pendingSkip) pendingSkip();
+      });
+    }
+
+    /** Resolves after ms, or immediately on the next tap — whichever is first. */
+    function beat(ms) {
+      return new Promise(function (resolve) {
+        var done = false;
+        var timer = setTimeout(finish, ms);
+        function finish() {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          if (pendingSkip === finish) pendingSkip = null;
+          resolve();
+        }
+        pendingSkip = finish;
+      });
+    }
+
+    function setPos(el, pt) {
+      el.style.setProperty("--x", pt.x + "%");
+      el.style.setProperty("--y", pt.y + "%");
+    }
+
+    /** Walk a sprite through waypoints, one leg at a time, each its own beat. */
+    function walk(el, points, legMs) {
+      var p = Promise.resolve();
+      points.forEach(function (pt) {
+        p = p.then(function () {
+          el.style.transitionDuration = legMs + "ms";
+          el.classList.add("is-walking");
+          setPos(el, pt);
+          return beat(legMs);
+        });
+      });
+      return p.then(function () { el.classList.remove("is-walking"); });
+    }
+
+    function showDialogueLine(text) {
+      dialogueTxtEl.textContent = text;
+      dialogueEl.hidden = false;
+      return beat(4200);
+    }
+
+    function showFx(icon, text, ms) {
+      fxIconEl.textContent = icon;
+      fxTextEl.textContent = text;
+      fxEl.hidden = false;
+      return beat(ms).then(function () { fxEl.hidden = true; });
+    }
+
+    /** One "searching for her" cycle: day badge, wander in, look, wander out. */
+    function dayLoopSteps(dayNum) {
+      return [
+        function () {
+          dayNumEl.textContent = dayNum;
+          dayEl.hidden = false;
+          return beat(380);
+        },
+        function () {
+          dayEl.hidden = true;
+          return walk(meEl, LOOP_ENTER, 420);
+        },
+        function () {
+          meEl.classList.add("is-looking");
+          return beat(500);
+        },
+        function () {
+          meEl.classList.remove("is-looking");
+          return walk(meEl, LOOP_EXIT, 420);
+        }
+      ];
+    }
+
+    function runSequence(steps) {
+      return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
+    }
+
+    function buildSteps() {
+      var steps = [];
+      for (var day = 1; day <= 3; day++) steps = steps.concat(dayLoopSteps(day));
+
+      steps = steps.concat([
+        // day 4 — she's there
+        function () {
+          setPos(herEl, HER_SEAT);
+          herEl.hidden = false;
+          dayNumEl.textContent = 4;
+          dayEl.hidden = false;
+          return beat(450);
+        },
+        function () {
+          dayEl.hidden = true;
+          return walk(meEl, FINAL_ENTER, 480);
+        },
+        function () {
+          meEl.classList.add("is-looking");
+          return beat(500);
+        },
+        function () { meEl.classList.remove("is-looking"); return Promise.resolve(); },
+        // notice her
+        function () {
+          meMarkEl.hidden = false;
+          return beat(650);
+        },
+        function () { meMarkEl.hidden = true; return Promise.resolve(); }
+      ]);
+
+      DIALOGUE.forEach(function (line) {
+        steps.push(function () { return showDialogueLine(line); });
+      });
+
+      steps = steps.concat([
+        function () { dialogueEl.hidden = true; hintEl.hidden = true; return showFx("💌", "request sent", 1300); },
+        function () {
+          herEl.classList.add("is-happy");
+          confetti.fire({ count: 70, power: 11 });
+          return showFx("✅", "she said yes", 1400);
+        },
+        function () { herEl.classList.remove("is-happy"); return walk(meEl, BESIDE_HER, 650); },
+        function () {
+          captionTxtEl.textContent = "And that's how it started.";
+          captionEl.hidden = false;
+          return beat(2600);
+        },
+        function () {
+          captionTxtEl.textContent = "The End 💛";
+          return beat(600);
+        }
+      ]);
+
+      return steps;
+    }
+
+    return {
+      play: function () {
+        if (started) return;
+        started = true;
+        runSequence(buildSteps());
+      }
+    };
+  })();
+
+  document.addEventListener("screenchange", function (e) {
+    if (e.detail.screen === "game") GAME.play();
+  });
+
+  /* ============================================================
      The screen handoffs.
      ============================================================ */
 
@@ -1229,6 +1421,7 @@
     goToLetter: goToLetter,
     goToGame: goToGame,
     letter: LETTER,
+    game: GAME,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO }
   };
 })();

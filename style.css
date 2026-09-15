@@ -1028,6 +1028,303 @@ body::before {
   margin-top: calc(4 * var(--u));
 }
 
+/* ============================================================
+   7e. THE GAME — top-down "how we met" cutscene
+   Flat shapes only, no image assets. Everything is positioned with
+   --x/--y custom properties (percent of the stage box), so the whole
+   scene scales as one piece exactly like the --u system scales the
+   rest of the site.
+   ============================================================ */
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  width: 100%;
+}
+
+.game__daycounter {
+  padding: calc(6 * var(--u)) calc(16 * var(--u));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(180, 120, 145, .14);
+  font-size: clamp(12px, calc(14 * var(--u)), 16px);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  animation: dayPop .35s cubic-bezier(.3, 1.4, .5, 1);
+}
+
+@keyframes dayPop {
+  from { opacity: 0; transform: translateY(calc(-6 * var(--u))) scale(.85); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- the stage ---- */
+.stage {
+  position: relative;
+  width: min(100%, calc(340 * var(--u)));
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: calc(16 * var(--u));
+  background: linear-gradient(180deg, #F6DDB6 0%, #EFCB98 100%);
+  box-shadow:
+    0 calc(2 * var(--u)) calc(3 * var(--u)) rgba(120, 85, 60, .12),
+    0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120, 85, 60, .24);
+}
+
+.stage__outdoor {
+  position: absolute;
+  inset: 0 0 0 78%;
+  background: linear-gradient(180deg, #BFE7C9 0%, #A6DCB4 100%);
+  border-left: calc(2 * var(--u)) dashed rgba(120, 85, 60, .22);
+}
+
+/* ---- counter ---- */
+.counter {
+  position: absolute;
+  left: 6%;
+  top: 5%;
+  width: 58%;
+  height: 13%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  border-radius: calc(4 * var(--u));
+  background: linear-gradient(180deg, #C98B5E 0%, #B06F42 100%);
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 70, 40, .3);
+}
+
+.counter__tray {
+  width: 14%;
+  height: 30%;
+  border-radius: calc(2 * var(--u));
+  background: rgba(255, 246, 230, .85);
+}
+
+/* ---- tables + chairs ---- */
+.table {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 13%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.table__top {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FFF6E7 0%, #F2DCB8 100%);
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(120, 85, 60, .28);
+}
+
+.chair {
+  position: absolute;
+  width: 34%;
+  height: 34%;
+  border-radius: calc(3 * var(--u));
+  background: #C98B5E;
+}
+.chair--n { top: -22%;  left: 33%; }
+.chair--s { bottom: -22%; left: 33%; }
+.chair--e { right: -22%; top: 33%; }
+.chair--w { left: -22%;  top: 33%; }
+
+.table--outdoor .table__top { background: linear-gradient(180deg, #FFF9EE 0%, #E9DABF 100%); }
+
+/* ---- trees + entrance mat ---- */
+.tree {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 13%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #8FD79E, #5FB876 70%);
+  box-shadow: 0 calc(10 * var(--u)) 0 -calc(6 * var(--u)) #A9764C;
+}
+
+.mat {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 16%;
+  height: 5%;
+  transform: translate(-50%, -50%);
+  border-radius: calc(4 * var(--u));
+  background: rgba(120, 85, 60, .18);
+}
+
+/* ---- background NPCs: static, decorative only ---- */
+.npc {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 9%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--c, var(--mint-d));
+  opacity: .82;
+  box-shadow: 0 calc(2 * var(--u)) 0 rgba(120, 85, 60, .2);
+}
+
+/* ---- sprites: "me" and "her" ---- */
+.sprite {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 11%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  transition: left .9s linear, top .9s linear;
+}
+
+.sprite__inner { position: relative; width: 100%; height: 100%; }
+
+.sprite__body {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 85, 60, .22);
+}
+
+.sprite--me  .sprite__body { background: linear-gradient(180deg, #8FCBDE 0%, #5FA8C4 100%); }
+.sprite--her .sprite__body { background: linear-gradient(180deg, #FFB0C6 0%, var(--pink-d) 100%); }
+
+.sprite__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22%;
+}
+
+.eye {
+  width: 14%;
+  height: 14%;
+  border-radius: 999px;
+  background: var(--ink);
+  transform: translateY(-8%);
+}
+
+.sprite__mark {
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(14px, calc(16 * var(--u)), 19px);
+  line-height: 1;
+  color: var(--pink-d);
+  animation: markPop .5s cubic-bezier(.3, 1.5, .5, 1) backwards;
+}
+
+@keyframes markPop {
+  from { opacity: 0; transform: translateX(-50%) translateY(30%) scale(.5); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* walking: a small 2-beat bob, cheap stand-in for a walk cycle */
+.sprite.is-walking .sprite__inner { animation: spriteBob .38s ease-in-out infinite; }
+@keyframes spriteBob {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(-6%) scaleY(1.05); }
+}
+
+/* looking around: eyes shift side to side, "her" table is being scanned */
+.sprite.is-looking .sprite__face { animation: lookAround 1.3s ease-in-out; }
+@keyframes lookAround {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-18%); }
+  75%      { transform: translateX(18%); }
+}
+
+/* happy reaction: request accepted */
+.sprite.is-happy .sprite__inner { animation: spriteHappy .5s ease-in-out 2; }
+@keyframes spriteHappy {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(-14%) rotate(-6deg); }
+}
+
+/* ---- "sent" / "accepted" overlay ---- */
+.fx {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6 * var(--u));
+  pointer-events: none;
+  background: rgba(255, 248, 234, .32);
+}
+
+.fx__icon {
+  font-size: clamp(30px, calc(40 * var(--u)), 48px);
+  line-height: 1;
+  animation: fxPop .55s cubic-bezier(.3, 1.5, .5, 1) backwards;
+}
+
+.fx__text {
+  margin: 0;
+  font-size: clamp(14px, calc(17 * var(--u)), 20px);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--pink-d);
+  animation: fxPop .55s cubic-bezier(.3, 1.5, .5, 1) .08s backwards;
+}
+
+@keyframes fxPop {
+  from { opacity: 0; transform: scale(.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---- dialogue box ---- */
+.dialogue {
+  width: min(100%, calc(340 * var(--u)));
+  padding: calc(16 * var(--u)) calc(20 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: rgba(255, 255, 255, .92);
+  box-shadow: var(--shadow-chunk);
+  text-align: center;
+  animation: dayPop .3s cubic-bezier(.3, 1.4, .5, 1);
+}
+
+.dialogue__text {
+  margin: 0 0 calc(4 * var(--u));
+  font-size: clamp(15px, calc(17 * var(--u)), 19px);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.dialogue__hint {
+  font-size: clamp(11px, calc(12 * var(--u)), 14px);
+  color: var(--ink-soft);
+}
+
+/* ---- closing caption ---- */
+.game__caption {
+  text-align: center;
+  animation: paperIn .8s cubic-bezier(.22, 1, .36, 1);
+}
+
+.game__caption p {
+  margin: 0;
+  font-family: "Playfair Display", "EB Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(17px, calc(20 * var(--u)), 23px);
+  color: var(--pink-d);
+}
+
 /* ---------- 8. PLACEHOLDER SCREENS ---------- */
 .placeholder {
   text-align: center;

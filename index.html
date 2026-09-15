@@ -258,15 +258,97 @@
   </section>
 
   <!-- ==========================================================
-       SCREEN 5 - GAME SCENE   (TODO)
-       Wire up: its own canvas + rAF loop. Pause the loop in
-       showScreen() when navigating away so it does not burn battery.
+       SCREEN 5 - THE GAME
+       A short, scripted, auto-playing top-down "how we met" cutscene.
+       No free-roam, no physics — GAME.play() in script.js walks the
+       sprites along preset waypoints and steps through fixed beats.
+       Tapping the stage skips ahead to the next beat.
        ========================================================== -->
   <section class="screen screen--game" data-screen="game">
-    <div class="placeholder">
-      <h2>Mini game</h2>
-      <p>Coming soon &#127918;</p>
-      <!-- TODO: <canvas id="game-canvas"></canvas> -->
+    <div class="game" id="game">
+
+      <div class="game__daycounter" id="game-day" hidden>
+        day <span id="game-day-num">1</span>
+      </div>
+
+      <!-- The canteen, built entirely from flat shapes — no image assets. -->
+      <div class="stage" id="game-stage">
+        <div class="stage__outdoor" aria-hidden="true"></div>
+
+        <div class="counter" aria-hidden="true">
+          <span class="counter__tray"></span>
+          <span class="counter__tray"></span>
+          <span class="counter__tray"></span>
+        </div>
+
+        <!-- tables: chairs first so the tabletop layers on top -->
+        <div class="table" id="table-her" style="--x:72%; --y:46%;">
+          <span class="chair chair--n"></span>
+          <span class="chair chair--s"></span>
+          <span class="chair chair--e"></span>
+          <span class="chair chair--w"></span>
+          <span class="table__top"></span>
+        </div>
+        <div class="table" style="--x:28%; --y:54%;">
+          <span class="chair chair--n"></span>
+          <span class="chair chair--s"></span>
+          <span class="chair chair--e"></span>
+          <span class="chair chair--w"></span>
+          <span class="table__top"></span>
+        </div>
+        <div class="table table--outdoor" style="--x:87%; --y:78%;">
+          <span class="chair chair--n"></span>
+          <span class="chair chair--s"></span>
+          <span class="table__top"></span>
+        </div>
+
+        <span class="tree" style="--x:92%; --y:18%;" aria-hidden="true"></span>
+        <span class="tree" style="--x:92%; --y:58%;" aria-hidden="true"></span>
+
+        <span class="mat" style="--x:15%; --y:97%;" aria-hidden="true"></span>
+
+        <!-- background life: static, non-interactive -->
+        <div class="npc" style="--x:30%; --y:40%; --c:var(--lilac);" aria-hidden="true"></div>
+        <div class="npc" style="--x:24%; --y:66%;  --c:var(--sun);" aria-hidden="true"></div>
+        <div class="npc" style="--x:44%; --y:12%; --c:var(--mint-d);" aria-hidden="true"></div>
+
+        <!-- "her" — hidden until she takes her seat -->
+        <div class="sprite sprite--her" id="sprite-her" style="--x:72%; --y:40%;" hidden>
+          <span class="sprite__mark" id="her-mark" hidden>&#10084;</span>
+          <div class="sprite__inner">
+            <div class="sprite__body"></div>
+            <div class="sprite__face"><span class="eye eye--l"></span><span class="eye eye--r"></span></div>
+          </div>
+        </div>
+
+        <!-- "me" -->
+        <div class="sprite sprite--me" id="sprite-me" style="--x:15%; --y:97%;">
+          <span class="sprite__mark" id="me-mark" hidden>!</span>
+          <div class="sprite__inner">
+            <div class="sprite__body"></div>
+            <div class="sprite__face"><span class="eye eye--l"></span><span class="eye eye--r"></span></div>
+          </div>
+        </div>
+
+        <!-- "request sent" / "request accepted" overlay -->
+        <div class="fx" id="game-fx" hidden>
+          <span class="fx__icon" id="game-fx-icon">&#128153;</span>
+          <p class="fx__text" id="game-fx-text">sent</p>
+        </div>
+      </div>
+
+      <p class="footnote game__hint" id="game-hint">tap to skip ahead</p>
+
+      <!-- dialogue box -->
+      <div class="dialogue" id="game-dialogue" hidden>
+        <p class="dialogue__text" id="game-dialogue-text"></p>
+        <span class="dialogue__hint">tap to continue</span>
+      </div>
+
+      <!-- closing caption -->
+      <div class="game__caption" id="game-caption" hidden>
+        <p id="game-caption-text"></p>
+      </div>
     </div>
   </section>
 
