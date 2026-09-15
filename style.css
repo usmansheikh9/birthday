@@ -1050,19 +1050,6 @@ body::before {
   width: 100%;
 }
 
-.game__daycounter {
-  padding: calc(6 * var(--u)) calc(16 * var(--u));
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .78);
-  box-shadow: 0 calc(3 * var(--u)) 0 rgba(120, 85, 60, .14);
-  font-size: clamp(12px, calc(14 * var(--u)), 16px);
-  font-weight: 600;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  animation: dayPop .35s cubic-bezier(.3, 1.4, .5, 1);
-}
-
 @keyframes dayPop {
   from { opacity: 0; transform: translateY(calc(-6 * var(--u))) scale(.85); }
   to   { opacity: 1; transform: none; }
@@ -1266,6 +1253,24 @@ body::before {
 
 .chest.is-open .chest__lid { transform: rotateX(-115deg); }
 
+/* the "tap the chest" instruction — anchored to the chest, biased left
+   so it never runs off the stage's right edge (the chest sits near it) */
+.chest__hint {
+  position: absolute;
+  bottom: 125%;
+  right: -20%;
+  white-space: nowrap;
+  padding: calc(4 * var(--u)) calc(9 * var(--u));
+  border-radius: calc(8 * var(--u));
+  background: rgba(255, 252, 245, .94);
+  box-shadow: 0 calc(2 * var(--u)) calc(6 * var(--u)) rgba(90, 60, 35, .28);
+  color: var(--ink);
+  font-size: clamp(10px, calc(11 * var(--u)), 13px);
+  font-weight: 600;
+  pointer-events: none;
+  animation: markPop .4s cubic-bezier(.3, 1.5, .5, 1);
+}
+
 /* ---- sprites: "me" and "her" ---- */
 .sprite {
   position: absolute;
@@ -1432,6 +1437,8 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
   gap: calc(6 * var(--u));
   padding: calc(6 * var(--u));
   border: 0;
@@ -1446,32 +1453,33 @@ body::before {
 
 .suspect__avatar {
   position: relative;
-  width: calc(46 * var(--u));
-  height: calc(46 * var(--u));
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
   border-radius: 999px;
   background: var(--sc, var(--earth-npc-1));
   box-shadow: 0 calc(3 * var(--u)) 0 rgba(90, 60, 35, .26);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: calc(6 * var(--u));
+  flex-shrink: 0;
 }
 
 .suspect[data-suspect="0"] .suspect__avatar { --sc: #C1784A; }
 .suspect[data-suspect="1"] .suspect__avatar { --sc: #8A9A5B; }
 .suspect[data-suspect="2"] .suspect__avatar { --sc: #B5566B; }
 
-.suspect__avatar .eye {
-  position: static;
-  width: calc(5 * var(--u));
-  height: calc(5 * var(--u));
-  background: rgba(60, 36, 20, .82);
+.suspect__glyph {
+  font-size: clamp(15px, calc(17 * var(--u)), 19px);
+  line-height: 1;
 }
 
 .suspect__name {
-  font-size: clamp(11px, calc(12 * var(--u)), 14px);
+  width: 100%;
+  font-size: clamp(10px, calc(11 * var(--u)), 12.5px);
   font-weight: 600;
+  line-height: 1.25;
   color: var(--ink-soft);
+  overflow-wrap: break-word;
 }
 
 .puzzle__feedback {

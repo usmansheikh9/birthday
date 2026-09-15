@@ -275,10 +275,6 @@
   <section class="screen screen--game" data-screen="game">
     <div class="game" id="game">
 
-      <div class="game__daycounter" id="game-day" hidden>
-        day <span id="game-day-num">1</span>
-      </div>
-
       <!-- The canteen, built entirely from flat shapes — no image assets. -->
       <div class="stage" id="game-stage">
         <div class="stage__outdoor" aria-hidden="true"></div>
@@ -331,10 +327,11 @@
         <div class="chest" id="game-chest" style="--x:90%; --y:92%;">
           <span class="chest__lid"></span>
           <span class="chest__latch"></span>
+          <span class="chest__hint" id="chest-hint" hidden>Tap the chest &#10024;</span>
         </div>
 
-        <!-- "her" — hidden until she takes her seat -->
-        <div class="sprite sprite--her" id="sprite-her" style="--x:72%; --y:40%;" hidden>
+        <!-- "her" — already seated at her table from the start -->
+        <div class="sprite sprite--her" id="sprite-her" style="--x:72%; --y:40%;">
           <div class="sprite__inner">
             <span class="limb arm arm--l"></span>
             <span class="limb arm arm--r"></span>
@@ -372,20 +369,21 @@
         <span class="dialogue__hint" id="game-dialogue-hint">tap to continue</span>
       </div>
 
-      <!-- the whodunit puzzle: 3 tappable suspects, infinite retries -->
+      <!-- the "what was I thinking about" puzzle: 3 tappable options,
+           infinite retries — see GAME.runPuzzle() -->
       <div class="puzzle" id="game-puzzle" hidden>
-        <p class="puzzle__question" id="puzzle-question">Who finished the last samosa?</p>
+        <p class="puzzle__question" id="puzzle-question"></p>
         <div class="puzzle__suspects" id="puzzle-suspects">
           <button class="suspect" type="button" data-suspect="0">
-            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__avatar"><span class="suspect__glyph">&#128173;</span></span>
             <span class="suspect__name"></span>
           </button>
           <button class="suspect" type="button" data-suspect="1">
-            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__avatar"><span class="suspect__glyph">&#128173;</span></span>
             <span class="suspect__name"></span>
           </button>
           <button class="suspect" type="button" data-suspect="2">
-            <span class="suspect__avatar"><span class="eye eye--l"></span><span class="eye eye--r"></span></span>
+            <span class="suspect__avatar"><span class="suspect__glyph">&#128173;</span></span>
             <span class="suspect__name"></span>
           </button>
         </div>

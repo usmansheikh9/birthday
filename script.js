@@ -1059,12 +1059,9 @@
 
   var GAME = (function () {
     var rootEl          = document.getElementById("game");
-    var stageEl         = document.getElementById("game-stage");
     var meEl            = document.getElementById("sprite-me");
     var herEl           = document.getElementById("sprite-her");
     var meMarkEl        = document.getElementById("me-mark");
-    var dayEl           = document.getElementById("game-day");
-    var dayNumEl        = document.getElementById("game-day-num");
     var dialogueEl      = document.getElementById("game-dialogue");
     var dialogueTxtEl   = document.getElementById("game-dialogue-text");
     var choicesEl       = document.getElementById("game-dialogue-choices");
@@ -1076,31 +1073,35 @@
     var suspectBtns     = document.querySelectorAll(".suspect");
     var feedbackEl      = document.getElementById("puzzle-feedback");
     var chestEl         = document.getElementById("game-chest");
+    var chestHintEl     = document.getElementById("chest-hint");
 
-    // Edit freely.
-    var GAME_QUESTION = "Wanna play a game?";
-    var PUZZLE_QUESTION = "Who finished the last samosa?";
-    var SUSPECTS = [
-      { name: "Suspect A", clue: "I was at the counter the whole time.", correct: false },
-      { name: "Suspect B", clue: "I don't even like samosas.", correct: false },
-      { name: "Her",       clue: "...okay, it might have been me.",     correct: true  }
+    // Edit freely — shown one line at a time, "Me"/"Her" prefixed. The
+    // last line is the one that gets the two "Yes" buttons attached.
+    var DIALOGUE = [
+      { speaker: "Me",  text: "Hey Chanda." },
+      { speaker: "Her", text: "Hey." },
+      { speaker: "Me",  text: "Wanna play a game?" }
+    ];
+
+    // Edit freely. Exactly one option needs correct: true.
+    var PUZZLE_QUESTION = "Guess what I was thinking about, every single day, walking into that canteen.";
+    var PUZZLE_OPTIONS = [
+      { name: "Should I order chai?",             correct: false },
+      { name: "How is she that beautiful?",        correct: true, reaction: "That's the one. Every single day." },
+      { name: "Did I leave my petrol lock open?",  correct: false }
     ];
 
     if (puzzleQEl) puzzleQEl.textContent = PUZZLE_QUESTION;
 
     // Slow, readable legs — this is meant to breathe, not rush.
-    var DAY_BADGE_MS = 900;
-    var LOOK_MS      = 1300;
-    var LOOP_LEG_MS  = 1000;
-    var FINAL_LEG_MS = 950;
-    var APPROACH_LEG_MS = 1400;
+    var LOOK_MS          = 1300;
+    var ENTER_LEG_MS     = 950;
+    var APPROACH_LEG_MS  = 1400;
+    var TO_CHEST_LEG_MS  = 950;
 
-    var LOOP_ENTER   = [{ x: 15, y: 78 }, { x: 30, y: 55 }];
-    var LOOP_EXIT    = [{ x: 15, y: 78 }, { x: 15, y: 97 }];
-    var FINAL_ENTER  = [{ x: 15, y: 78 }, { x: 32, y: 58 }, { x: 42, y: 50 }];
-    var APPROACH     = [{ x: 52, y: 48 }, { x: 62, y: 42 }];
-    var TO_CHEST     = [{ x: 78, y: 70 }, { x: 84, y: 86 }];
-    var HER_SEAT     = { x: 72, y: 40 };
+    var ENTER        = [{ x: 15, y: 78 }, { x: 32, y: 58 }, { x: 42, y: 50 }];
+    var APPROACH      = [{ x: 52, y: 48 }, { x: 62, y: 42 }];
+    var TO_CHEST      = [{ x: 78, y: 70 }, { x: 84, y: 86 }];
 
     var started = false;
     var pendingSkip = null; // current beat's resolve(); a tap anywhere calls it
@@ -1165,48 +1166,25 @@
       return p.then(function () { el.classList.remove("is-walking"); });
     }
 
-    /** One "searching for her" cycle: day badge, wander in, look, wander out. */
-    function dayLoopSteps(dayNum) {
-      return [
-        function () {
-          dayNumEl.textContent = dayNum;
-          dayEl.hidden = false;
-          return beat(DAY_BADGE_MS);
-        },
-        function () {
-          dayEl.hidden = true;
-          return walk(meEl, LOOP_ENTER, LOOP_LEG_MS);
-        },
-        function () {
-          meEl.classList.add("is-looking");
-          return beat(LOOK_MS);
-        },
-        function () {
-          meEl.classList.remove("is-looking");
-          return walk(meEl, LOOP_EXIT, LOOP_LEG_MS);
-        }
-      ];
-    }
-
     function runSequence(steps) {
       return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
     }
 
-    /** The whodunit beat: infinite retries, resolves only on the right suspect. */
+    /** The puzzle beat: infinite retries, resolves only on the right option. */
     function runPuzzle() {
       return new Promise(function (resolve) {
         Array.prototype.forEach.call(suspectBtns, function (btn, i) {
-          var suspect = SUSPECTS[i];
-          btn.querySelector(".suspect__name").textContent = suspect.name;
+          var option = PUZZLE_OPTIONS[i];
+          btn.querySelector(".suspect__name").textContent = option.name;
           btn.disabled = false;
           function onTap() {
-            if (suspect.correct) {
-              feedbackEl.textContent = suspect.clue + " — that's the one!";
+            if (option.correct) {
+              feedbackEl.textContent = option.reaction;
               feedbackEl.classList.add("is-correct");
               Array.prototype.forEach.call(suspectBtns, function (b) { b.disabled = true; });
               setTimeout(resolve, 1300);
             } else {
-              feedbackEl.textContent = suspect.clue + " — hmm, not them.";
+              feedbackEl.textContent = "hmm, not that.";
               feedbackEl.classList.remove("is-correct");
             }
           }
@@ -1215,23 +1193,30 @@
       });
     }
 
-    function buildSteps() {
-      var steps = [];
-      for (var day = 1; day <= 3; day++) steps = steps.concat(dayLoopSteps(day));
+    /** The Me/Her back-and-forth. The last line carries the "Yes"/"Yes" choice. */
+    function dialogueSteps() {
+      return DIALOGUE.map(function (line, i) {
+        var isLast = i === DIALOGUE.length - 1;
+        return function () {
+          dialogueTxtEl.textContent = line.speaker + ": " + line.text;
+          dialogueEl.hidden = false;
+          if (isLast) {
+            hintEl.hidden = true;
+            dialogueHintEl.hidden = true;
+            choicesEl.hidden = false;
+            return waitForClick(choiceBtns);
+          }
+          dialogueHintEl.hidden = false;
+          choicesEl.hidden = true;
+          return beat(3200);
+        };
+      });
+    }
 
-      steps = steps.concat([
-        // day 4 — she's there
-        function () {
-          setPos(herEl, HER_SEAT);
-          herEl.hidden = false;
-          dayNumEl.textContent = 4;
-          dayEl.hidden = false;
-          return beat(DAY_BADGE_MS);
-        },
-        function () {
-          dayEl.hidden = true;
-          return walk(meEl, FINAL_ENTER, FINAL_LEG_MS);
-        },
+    function buildSteps() {
+      var steps = [
+        // walk in from the entrance — she's already seated, waiting
+        function () { return walk(meEl, ENTER, ENTER_LEG_MS); },
         function () {
           meEl.classList.add("is-looking");
           return beat(LOOK_MS);
@@ -1244,16 +1229,12 @@
         },
         function () { meMarkEl.hidden = true; return Promise.resolve(); },
         // a real, slow walk over — this beat gets to breathe
-        function () { return walk(meEl, APPROACH, APPROACH_LEG_MS); },
-        // "wanna play a game?"
-        function () {
-          hintEl.hidden = true;
-          dialogueTxtEl.textContent = GAME_QUESTION;
-          dialogueHintEl.hidden = true;
-          choicesEl.hidden = false;
-          dialogueEl.hidden = false;
-          return waitForClick(choiceBtns);
-        },
+        function () { return walk(meEl, APPROACH, APPROACH_LEG_MS); }
+      ];
+
+      steps = steps.concat(dialogueSteps());
+
+      steps = steps.concat([
         function () {
           dialogueEl.hidden = true;
           choicesEl.hidden = true;
@@ -1262,15 +1243,18 @@
           puzzleEl.hidden = false;
           return runPuzzle();
         },
+        // solved — she gets up and heads for the chest
         function () {
           puzzleEl.hidden = true;
-          return walk(meEl, TO_CHEST, 850);
+          return walk(herEl, TO_CHEST, TO_CHEST_LEG_MS);
         },
         function () {
           chestEl.classList.add("is-active");
+          chestHintEl.hidden = false;
           return waitForClick(chestEl);
         },
         function () {
+          chestHintEl.hidden = true;
           chestEl.classList.remove("is-active");
           chestEl.classList.add("is-open");
           return beat(500);
