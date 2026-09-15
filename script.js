@@ -149,89 +149,6 @@
   }
 
   /* ============================================================
-     2b. CELEBRATION AUDIO
-     A synthesized Web Audio fanfare turned out unreliable on real phones
-     even with the AudioContext reporting "running" — the context can be
-     technically unlocked while the actual note-scheduling path still
-     produces nothing audible. A plain <audio> element playing a real
-     file is the far better-trodden path (this is exactly how every
-     other site's click-to-play sound works), so that is what this wraps.
-
-     debugInfo() feeds the ?debug on-screen readout (never console.log —
-     phones make devtools impractical) with exactly what happened: the
-     element's readyState (did the file even load), whether play() was
-     called, and whatever error came back if it was rejected.
-     ============================================================ */
-
-  var celebrationAudio = (function () {
-    var el = document.getElementById("celebration-audio");
-    var primed = false;
-    var playCalled = false;
-    var lastError = null;
-
-    function noteError(err) {
-      lastError = (err && (err.name || err.message)) || String(err);
-    }
-
-    /** Call from inside a real user-gesture handler (a tap/click/key).
-        Plays a beat then immediately rewinds and pauses — the standard
-        mobile trick for getting a later, un-gestured play() to actually
-        produce sound, since some browsers only fully open the audio
-        route the first time play() resolves inside a gesture. Muted for
-        this priming play so she never hears a stray blip from it. */
-    function prime() {
-      if (primed || !el) return;
-      primed = true;
-      el.muted = true;
-      var reset = function (err) {
-        if (err) noteError(err);
-        el.pause();
-        el.currentTime = 0;
-        el.muted = false;
-      };
-      var p = el.play();
-      if (p && p.then) {
-        p.then(reset, reset);
-      } else {
-        reset();
-      }
-    }
-
-    /** The real attempt, timed to land with the confetti burst. */
-    function play() {
-      playCalled = true;
-      lastError = null;
-      if (!el) {
-        lastError = "no <audio> element found";
-        return;
-      }
-      el.currentTime = 0;
-      var p = el.play();
-      if (p && p.catch) p.catch(noteError);
-    }
-
-    function debugInfo() {
-      return {
-        primed: primed,
-        ready: el ? el.readyState : "no-el",
-        played: playCalled,
-        paused: el ? el.paused : "n/a",
-        error: lastError || "none",
-      };
-    }
-
-    var primer = function () {
-      prime();
-      document.removeEventListener("pointerdown", primer);
-      document.removeEventListener("keydown", primer);
-    };
-    document.addEventListener("pointerdown", primer, { passive: true });
-    document.addEventListener("keydown", primer, { passive: true });
-
-    return { prime: prime, play: play, isPrimed: function () { return primed; }, debugInfo: debugInfo };
-  })();
-
-  /* ============================================================
      3. CONFETTI — tiny canvas particle burst, no library
      ============================================================ */
 
@@ -381,20 +298,8 @@
         start();
       },
 
-      /** The full celebration: four staggered bursts across the column,
-          plus the sound effect fired alongside the first burst. */
+      /** The full celebration: four staggered bursts across the column. */
       celebrate: function () {
-        celebrationAudio.play();
-        dbg.set(celebrationAudio.debugInfo());
-        dbg.flush();
-        // play()'s promise settles asynchronously — re-read once it has,
-        // so a rejection (autoplay block, decode error, etc.) actually
-        // shows up in the readout instead of the optimistic first snapshot.
-        setTimeout(function () {
-          dbg.set(celebrationAudio.debugInfo());
-          dbg.flush();
-        }, 400);
-
         var col = column(),
           h = window.innerHeight;
         var at = function (f) {
@@ -1603,8 +1508,6 @@
     mins: document.getElementById("cd-mins"),
     secs: document.getElementById("cd-secs"),
     secsPill: document.querySelector(".pill--secs"),
-    zeroGate: document.getElementById("zero-gate"),
-    zeroGateBtn: document.getElementById("zero-gate-btn"),
   };
 
   el.name.textContent = HER_NAME;
@@ -1612,7 +1515,6 @@
 
   var timerId = null;
   var finished = false;
-  var zeroStateEntered = false;
   var lastSeconds = -1;
 
   function pad(n) {
@@ -1623,7 +1525,7 @@
     var remaining = TARGET_MS - Date.now();
 
     if (remaining <= 0) {
-      enterZeroState();
+      reachBirthday();
       return;
     }
 
@@ -1652,7 +1554,7 @@
      gets throttled — we schedule the next tick for the exact moment the
      displayed seconds value is due to change. */
   function scheduleTick() {
-    if (finished || zeroStateEntered) return;
+    if (finished) return;
     var remaining = TARGET_MS - Date.now();
     var delay = remaining <= 0 ? 0 : remaining % 1000 || 1000;
     timerId = setTimeout(function () {
@@ -1702,40 +1604,6 @@
     onBirthdayReached();
   }
 
-  /** The single entry point into the zero-state, however it is reached —
-      the live countdown ticking down to it, or a cold load already past
-      the target (?skip has its own path in boot; see there). Runs once.
-
-      Audio needs a real user gesture before it will reliably play, and
-      neither path is guaranteed to have had one: the cake screen has no
-      interactive element at all before this point. So this gates on one
-      tap ONLY when audio genuinely has not been primed yet by anything
-      else — if she has already touched the page (the passive primer in
-      celebrationAudio catching a scroll, a stray tap, an earlier visit
-      to this gate), the zero-state proceeds immediately and the live
-      countdown is never interrupted for a redundant tap. */
-  function enterZeroState() {
-    if (zeroStateEntered) return;
-    zeroStateEntered = true;
-    stopTimer();
-    hideCountdownUI();
-
-    if (celebrationAudio.isPrimed() || !el.zeroGate || !el.zeroGateBtn) {
-      setTimeout(reachBirthday, 700);
-      return;
-    }
-
-    dbg.phase("tap to begin");
-    el.zeroGate.hidden = false;
-    el.zeroGateBtn.addEventListener("click", function onTap() {
-      el.zeroGateBtn.removeEventListener("click", onTap);
-      celebrationAudio.prime();
-      el.zeroGate.hidden = true;
-      dbg.phase("tapped -> zero");
-      setTimeout(reachBirthday, 700);
-    });
-  }
-
   /* ============================================================
      Fires exactly once, the moment the countdown reaches zero (or
      immediately when the page is loaded with ?skip). Hands off to the
@@ -1752,11 +1620,7 @@
   // Mobile browsers throttle timers in background tabs, so re-sync the
   // moment we come back into view.
   document.addEventListener("visibilitychange", function () {
-    if (
-      document.visibilityState === "visible" &&
-      !finished &&
-      !zeroStateEntered
-    ) {
+    if (document.visibilityState === "visible" && !finished) {
       render();
       stopTimer();
       scheduleTick();
@@ -1781,14 +1645,13 @@
   var alreadyPast = Date.now() >= TARGET_MS;
 
   if (params.has("skip") || alreadyPast) {
-    // ?skip (test the zero state without waiting for the real date) goes
-    // through the exact same gate as a cold load past the target —
-    // typing a URL is not a user gesture either, so it needs the tap
-    // just as much (confirmed the hard way: without this, testing via
-    // ?skip alone reproduced the very "no sound" bug being tracked down
-    // here, just for the wrong reason — no gesture had happened at all).
-    dbg.phase(params.has("skip") ? "?skip -> zero" : "already past target");
-    enterZeroState();
+    dbg.phase(params.has("skip") ? "?skip -> zero" : "already past target -> zero");
+    // Apply the zero-state look synchronously, before the first paint, so
+    // the ticking countdown never renders even for a frame — then still
+    // wait a beat before actually firing confetti, so the cake finishes
+    // bouncing in first.
+    hideCountdownUI();
+    setTimeout(reachBirthday, 700);
   } else {
     dbg.phase("counting down");
     render();
@@ -1815,7 +1678,6 @@
     goToLetter: goToLetter,
     goToGame: goToGame,
     letter: LETTER,
-    celebrationAudio: celebrationAudio, // BDay.celebrationAudio.debugInfo(), for checking from the console
     game: GAME,
     config: { name: HER_NAME, age: HER_AGE, target: TARGET_ISO },
   };
